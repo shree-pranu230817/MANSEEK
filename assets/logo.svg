@@ -1,0 +1,6 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Stylized face outline -->
+  <path d="M60 50 L140 50 C160 50 160 80 160 120 C160 160 140 160 130 160 L70 160 C60 160 60 150 60 140 L60 130 M60 110 L50 100 L60 90 L60 50" fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Red eye/mark -->
+  <polygon points="80 95 120 100 80 105" fill="#ff0000"/>
+</svg>

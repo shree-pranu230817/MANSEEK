@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Login | ManSeek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .login-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            padding: 40px 20px;
+        }
+
+        .login-container {
+            background: white;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.05);
+            padding: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--gradient-primary);
+        }
+
+        .step-container {
+            display: none;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .step-container.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-header h2 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            transition: var(--transition-smooth);
+            font-size: 16px;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .otp-inputs {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .otp-input:focus {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.02);
+        }
+
+        .resend-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .resend-link a {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 30px;
+            transition: color 0.3s;
+        }
+
+        .back-btn:hover {
+            color: var(--text-color);
+        }
+
+        .phone-prefix {
+            position: relative;
+        }
+
+        .phone-prefix span {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .phone-prefix input {
+            padding-left: 55px;
+        }
+
+        .info-box {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 24px;
+            border-left: 4px solid var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <section class="login-section">
+        <div class="login-container">
+            <!-- Step 1: Phone Entry -->
+            <div id="step-phone" class="step-container active">
+                <div class="login-header">
+                    <h2 class="playfair">Welcome to ManSeek</h2>
+                    <p>Enter your phone number to continue</p>
+                </div>
+                <form onsubmit="handlePhoneSubmit(event)">
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <div class="phone-prefix">
+                            <span>+91</span>
+                            <input type="tel" id="phone-number" placeholder="9876543210" pattern="[0-9]{10}" required maxlength="10">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Continue</button>
+                </form>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="index.html" style="font-size: 14px; color: var(--text-muted);">Back to Store</a>
+                </div>
+            </div>
+
+            <!-- Step 2: OTP Verification -->
+            <div id="step-otp" class="step-container">
+                <button class="back-btn" onclick="showStep('step-phone')">
+                    ← Change Number
+                </button>
+                <div class="login-header" style="text-align: left;">
+                    <h2 class="playfair">Verify Phone</h2>
+                    <p>We've sent a 4-digit code to <strong id="display-phone"></strong></p>
+                </div>
+                <div class="info-box">
+                    <strong>Demo Mode:</strong> Use OTP <span style="font-family: monospace; font-weight: 700; color: var(--primary-color);">1234</span>
+                </div>
+                <form onsubmit="handleOtpSubmit(event)">
+                    <div class="otp-inputs">
+                        <input type="text" class="otp-input" maxlength="1" required data-index="0">
+                        <input type="text" class="otp-input" maxlength="1" required data-index="1">
+                        <input type="text" class="otp-input" maxlength="1" required data-index="2">
+                        <input type="text" class="otp-input" maxlength="1" required data-index="3">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Verify & Continue</button>
+                </form>
+                <div class="resend-link">
+                    Didn't get it? <a href="#" onclick="alert('OTP Resent!')">Resend OTP</a>
+                </div>
+            </div>
+
+            <!-- Step 3: Password Setup / Login -->
+            <div id="step-auth" class="step-container">
+                <div class="login-header">
+                    <h2 class="playfair" id="auth-title">Complete Setup</h2>
+                    <p id="auth-desc">Create a password for your account</p>
+                </div>
+                <form onsubmit="handleAuthSubmit(event)">
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="user-password" placeholder="••••••••" required minlength="6">
+                    </div>
+                    <div class="form-group" id="confirm-pass-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="confirm-password" placeholder="••••••••" minlength="6">
+                    </div>
+                    <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">Create Account</button>
+                </form>
+                <div id="forgot-pass-link" style="text-align: center; margin-top: 20px; display: none;">
+                    <a href="#" onclick="showStep('step-otp')" style="font-size: 14px; color: var(--primary-color);">Forgot Password?</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        let currentPhone = '';
+        let isNewUser = true;
+
+        // OTP Input Auto-focus logic
+        const otpInputs = document.querySelectorAll('.otp-input');
+        otpInputs.forEach((input, idx) => {
+            input.addEventListener('keyup', (e) => {
+                if (e.key >= 0 && e.key <= 9) {
+                    if (idx < otpInputs.length - 1) otpInputs[idx + 1].focus();
+                } else if (e.key === 'Backspace') {
+                    if (idx > 0) otpInputs[idx - 1].focus();
+                }
+            });
+        });
+
+        function showStep(stepId) {
+            document.querySelectorAll('.step-container').forEach(s => s.classList.remove('active'));
+            document.getElementById(stepId).classList.add('active');
+        }
+
+        function handlePhoneSubmit(e) {
+            e.preventDefault();
+            currentPhone = document.getElementById('phone-number').value;
+            document.getElementById('display-phone').textContent = `+91 ${currentPhone}`;
+            
+            // Check if user exists
+            const users = JSON.parse(localStorage.getItem('manseek_customers')) || {};
+            isNewUser = !users[currentPhone];
+            
+            showStep('step-otp');
+            console.log("OTP Sent: 1234");
+        }
+
+        function handleOtpSubmit(e) {
+            e.preventDefault();
+            let otp = '';
+            otpInputs.forEach(input => otp += input.value);
+            
+            if (otp === '1234') {
+                if (isNewUser) {
+                    document.getElementById('auth-title').textContent = 'Welcome Aboard!';
+                    document.getElementById('auth-desc').textContent = 'Set up a password for your account';
+                    document.getElementById('auth-submit-btn').textContent = 'Create Account';
+                    document.getElementById('confirm-pass-group').style.display = 'block';
+                    document.getElementById('forgot-pass-link').style.display = 'none';
+                } else {
+                    document.getElementById('auth-title').textContent = 'Welcome Back';
+                    document.getElementById('auth-desc').textContent = 'Enter your password to sign in';
+                    document.getElementById('auth-submit-btn').textContent = 'Sign In';
+                    document.getElementById('confirm-pass-group').style.display = 'none';
+                    document.getElementById('forgot-pass-link').style.display = 'block';
+                }
+                showStep('step-auth');
+            } else {
+                alert('Invalid OTP. Please try 1234');
+            }
+        }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const pass = document.getElementById('user-password').value;
+            const confirmPass = document.getElementById('confirm-password').value;
+            
+            const users = JSON.parse(localStorage.getItem('manseek_customers')) || {};
+
+            if (isNewUser) {
+                if (pass !== confirmPass) {
+                    alert('Passwords do not match!');
+                    return;
+                }
+                users[currentPhone] = {
+                    phone: currentPhone,
+                    password: pass,
+                    name: 'Customer', // Default
+                    joined: new Date().toISOString()
+                };
+                localStorage.setItem('manseek_customers', JSON.stringify(users));
+                localStorage.setItem('manseek_current_user', currentPhone);
+                alert('Account created successfully!');
+                location.href = 'account.html';
+            } else {
+                if (users[currentPhone].password === pass) {
+                    localStorage.setItem('manseek_current_user', currentPhone);
+                    location.href = 'account.html';
+                } else {
+                    alert('Incorrect password!');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

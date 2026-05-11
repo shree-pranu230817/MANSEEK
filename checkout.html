@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | ManSeek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .checkout-container {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 60px;
+            padding-top: 120px;
+            margin-bottom: 80px;
+        }
+
+        .checkout-form {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+        }
+
+        .form-section h3 {
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .order-summary {
+            background: var(--bg-alt);
+            padding: 40px;
+            border-radius: 8px;
+            height: fit-content;
+            position: sticky;
+            top: 120px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .summary-total {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .payment-method {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .method-card {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: var(--transition-smooth);
+        }
+
+        .method-card.active {
+            border-color: var(--accent-color);
+            background: rgba(255,0,0,0.02);
+        }
+
+        @media (max-width: 768px) {
+            .checkout-container { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header id="main-header" class="scrolled">
+        <nav class="container">
+            <div class="logo">
+                <a href="index.html"><span class="logo-text">Man<span class="accent">S</span>eek</span></a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="shop.html">Shop</a></li>
+                <li><a href="custom.html">Custom Design</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="checkout-container">
+            <div class="checkout-form">
+                <h2 class="playfair" style="margin-bottom: 40px;">Shipping Details</h2>
+                
+                <form id="payment-form">
+                    <div class="form-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0; border: none; padding: 0;">Contact Information</h3>
+                            <div id="login-prompt" style="font-size: 13px;">
+                                Returning customer? <a href="customer-login.html" style="color: var(--primary-color); font-weight: 600;">Login here</a>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="c-email" placeholder="you@example.com" required>
+                        </div>
+                    </div>
+
+
+                    <div class="form-section">
+                        <h3>Shipping Address</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" placeholder="John" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" placeholder="Doe" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" placeholder="House/Flat No, Building, Street" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" placeholder="Bengaluru" required>
+                            </div>
+                            <div class="form-group">
+                                <label>State</label>
+                                <select required>
+                                    <option value="">Select State</option>
+                                    <option value="KA">Karnataka</option>
+                                    <option value="MH">Maharashtra</option>
+                                    <option value="DL">Delhi</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Pincode</label>
+                                <input type="text" id="c-pin" placeholder="560001" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="c-phone" placeholder="9999999999" required pattern="[0-9]{10}">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Payment Method</h3>
+                        <div class="payment-method">
+                            <div class="method-card active" data-method="online">
+                                <img src="assets/razorpay-logo.png" alt="Razorpay" height="20" onerror="this.src='https://razorpay.com/favicon.png'">
+                                <p>Online Payment</p>
+                            </div>
+                            <div class="method-card" data-method="cod">
+                                <p>Cash on Delivery</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" style="margin-top: 30px;">Complete Order</button>
+                </form>
+            </div>
+
+            <div class="order-summary">
+                <h3 class="playfair" style="margin-bottom: 25px;">Order Summary</h3>
+                <div id="summary-items">
+                    <!-- Summary items from LocalStorage -->
+                </div>
+                
+                <div class="summary-item" style="margin-top: 25px;">
+                    <span>Subtotal</span>
+                    <span id="subtotal">₹0</span>
+                </div>
+                <div class="summary-item">
+                    <span>Shipping</span>
+                    <span class="accent">FREE</span>
+                </div>
+                <div class="summary-total">
+                    <span>Total</span>
+                    <span id="final-total">₹0</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        // Load Summary
+        const cart = JSON.parse(localStorage.getItem('manseek_cart')) || [];
+        const summaryContainer = document.getElementById('summary-items');
+        const subtotalEl = document.getElementById('subtotal');
+        const totalEl = document.getElementById('final-total');
+
+        function updateSummary() {
+            if (cart.length === 0) {
+                summaryContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">Your cart is empty</p>';
+                return;
+            }
+
+            summaryContainer.innerHTML = cart.map(item => `
+                <div class="summary-item">
+                    <span>${item.name} (x${item.quantity})</span>
+                    <span>₹${(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                </div>
+            `).join('');
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            subtotalEl.textContent = `₹${total.toLocaleString('en-IN')}`;
+            totalEl.textContent = `₹${total.toLocaleString('en-IN')}`;
+        }
+
+        updateSummary();
+
+        // Payment Method Toggle
+        let selectedMethod = 'online';
+        document.querySelectorAll('.method-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.method-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                selectedMethod = card.dataset.method;
+            });
+        });
+
+        // Auto-fill for logged in users
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPhone = localStorage.getItem('manseek_current_user');
+            if (currentPhone) {
+                const users = JSON.parse(localStorage.getItem('manseek_customers')) || {};
+                const user = users[currentPhone];
+                if (user) {
+                    document.getElementById('c-phone').value = currentPhone;
+                    document.getElementById('c-phone').readOnly = true;
+                    if (user.email) document.getElementById('c-email').value = user.email;
+                    if (user.name) {
+                        const names = user.name.split(' ');
+                        document.querySelectorAll('input[type="text"]')[0].value = names[0] || '';
+                        document.querySelectorAll('input[type="text"]')[1].value = names.slice(1).join(' ') || '';
+                    }
+                    document.getElementById('login-prompt').innerHTML = `Logged in as <strong>${user.name || currentPhone}</strong>`;
+                }
+            }
+        });
+
+        // Payment Handling
+        document.getElementById('payment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            if (total === 0) return alert('Cart is empty!');
+
+            const email = document.getElementById('c-email').value;
+            const firstName = document.querySelectorAll('input[type="text"]')[0].value;
+            const lastName = document.querySelectorAll('input[type="text"]')[1].value;
+            const phone = document.getElementById('c-phone').value;
+
+            const orderData = {
+                id: 'MS-' + Date.now(), // More unique ID
+                customerName: `${firstName} ${lastName}`,
+                customerEmail: email,
+                customerPhone: phone,
+                items: cart,
+                amount: total,
+                status: 'PLACED',
+                date: new Date().toISOString()
+            };
+
+            if (selectedMethod === 'online') {
+                const options = {
+                    "key": "rzp_test_YOUR_KEY_HERE",
+                    "amount": total * 100,
+                    "currency": "INR",
+                    "name": "ManSeek",
+                    "description": "Streetwear Purchase",
+                    "image": "assets/logo.svg",
+                    "handler": function (response){
+                        saveOrder(orderData);
+                        localStorage.removeItem('manseek_cart');
+                        location.href = 'order-success.html';
+                    },
+                    "prefill": {
+                        "name": `${firstName} ${lastName}`,
+                        "email": email,
+                        "contact": phone
+                    },
+                    "theme": {
+                        "color": "#6366f1"
+                    }
+                };
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } else {
+                // COD
+                saveOrder(orderData);
+                localStorage.removeItem('manseek_cart');
+                location.href = 'order-success.html';
+            }
+        });
+
+        function saveOrder(order) {
+            let orders = JSON.parse(localStorage.getItem('manseek_orders')) || [];
+            orders.unshift(order);
+            localStorage.setItem('manseek_orders', JSON.stringify(orders));
+        }
+
+    </script>
+</body>
+</html>
