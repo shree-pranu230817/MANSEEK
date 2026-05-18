@@ -47,7 +47,7 @@ export function Header() {
           to="/"
           className="flex items-center gap-3 font-display text-2xl tracking-[0.2em] text-white hover:text-lime transition"
         >
-          <img src="/logo.png" alt="ManSeek Logo" className="h-8" />
+          <img src="/logo.png" alt="ManSeek Logo" className="h-12 w-auto object-contain" />
           MANSEEK
         </Link>
 
@@ -126,7 +126,7 @@ export function Header() {
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <div className="h-16 px-4 flex items-center justify-between border-b border-dark-gray">
             <span className="flex items-center gap-3 font-display text-2xl tracking-[0.2em]">
-              <img src="/logo.png" alt="ManSeek Logo" className="h-8" />
+              <img src="/logo.png" alt="ManSeek Logo" className="h-12 w-auto object-contain" />
               MANSEEK
             </span>
             <button onClick={() => setMobileOpen(false)} className="text-white">
