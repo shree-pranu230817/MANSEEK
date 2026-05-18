@@ -83,10 +83,9 @@ function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="mt-8 max-w-md text-light-gray leading-relaxed"
+              className="mt-8 max-w-md text-light-gray leading-relaxed font-display tracking-widest text-lg text-lime"
             >
-              Street luxury, engineered in Mumbai. Heavyweight cotton, raw silhouettes,
-              zero apology.
+              Print your Street Wear Spirit With ManSeek
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 10 }}

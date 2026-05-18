@@ -250,11 +250,6 @@ function ProductDetail() {
                 c: "Free shipping on orders above ₹999. Standard delivery 3–6 days. Express 1–2 days.",
                 icon: <Truck className="h-4 w-4" />,
               },
-              {
-                t: "Returns",
-                c: "Easy 7-day returns. Item must be unworn with tags attached. Custom items final sale.",
-                icon: <RefreshCw className="h-4 w-4" />,
-              },
             ].map((a) => (
               <Accordion key={a.t} title={a.t} icon={a.icon}>
                 {a.c}
