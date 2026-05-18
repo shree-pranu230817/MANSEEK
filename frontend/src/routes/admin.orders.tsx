@@ -19,7 +19,9 @@ function AdminOrders() {
       });
       if (res.ok) {
         const data = await res.json();
-        setOrders(data);
+        // Keep ONLY orders that have completed payment
+        const completedOrders = data.filter((o: any) => o.payment_status === "paid");
+        setOrders(completedOrders);
       }
     } catch (err) {
       console.error("Error fetching orders:", err);

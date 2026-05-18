@@ -155,12 +155,17 @@ export function ProductCard({ product }: { product: Product }) {
             {product.name}
           </Link>
         </div>
-        <div className="text-right">
-          <p className="font-display text-xl text-lime">{formatINR(product.price)}</p>
+        <div className="text-right flex flex-col items-end">
+          <p className="font-display text-xl text-lime leading-tight">{formatINR(product.price)}</p>
           {product.oldPrice && (
-            <p className="text-xs text-mid-gray line-through">
-              {formatINR(product.oldPrice)}
-            </p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-xs text-mid-gray line-through leading-none">
+                {formatINR(product.oldPrice)}
+              </span>
+              <span className="text-[10px] font-bold text-lime bg-lime/10 px-1 py-0.5 rounded leading-none">
+                {Math.round((1 - product.price / product.oldPrice) * 100)}% OFF
+              </span>
+            </div>
           )}
         </div>
       </div>

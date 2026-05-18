@@ -20,7 +20,8 @@ function AdminProducts() {
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [price, setPrice] = useState("");
+  const [highPrice, setHighPrice] = useState("");
+  const [lowPrice, setLowPrice] = useState("");
   const [stock, setStock] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   
@@ -114,7 +115,8 @@ function AdminProducts() {
       formData.append("slug", slug);
       formData.append("description", description);
       formData.append("category_id", categoryId);
-      formData.append("base_price", price);
+      formData.append("base_price", lowPrice);
+      formData.append("old_price", highPrice);
       formData.append("stock", stock);
       formData.append("sizes", JSON.stringify(["S", "M", "L", "XL"]));
       formData.append("colors", JSON.stringify([{ name: colorName, hex: colorHex }]));
@@ -141,7 +143,8 @@ function AdminProducts() {
       setName("");
       setSlug("");
       setDescription("");
-      setPrice("");
+      setHighPrice("");
+      setLowPrice("");
       setStock("");
       setColorName("Black");
       setColorHex("#000000");
@@ -330,21 +333,43 @@ function AdminProducts() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-1">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
-                    Price (₹)
+                    High Price (MRP ₹)
                   </label>
                   <input
                     type="number"
                     required
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="500"
+                    value={highPrice}
+                    onChange={(e) => setHighPrice(e.target.value)}
+                    placeholder="2000"
                     className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm"
                   />
                 </div>
-                <div className="col-span-1">
+                <div>
+                  <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
+                    Low Price (Selling Price ₹)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={lowPrice}
+                    onChange={(e) => setLowPrice(e.target.value)}
+                    placeholder="800"
+                    className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm"
+                  />
+                </div>
+              </div>
+
+              {highPrice && lowPrice && (
+                <div className="text-xs text-lime font-bold tracking-wider bg-lime/10 px-3 py-1.5 rounded-sm border border-lime/30 w-fit">
+                  Calculated Discount: {Math.round((1 - parseFloat(lowPrice) / parseFloat(highPrice)) * 100)}% OFF
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
                     Stock
                   </label>
@@ -357,7 +382,7 @@ function AdminProducts() {
                     className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm"
                   />
                 </div>
-                <div className="col-span-1">
+                <div>
                   <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
                     Category
                   </label>
