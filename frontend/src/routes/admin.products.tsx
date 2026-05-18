@@ -115,8 +115,8 @@ function AdminProducts() {
       formData.append("slug", slug);
       formData.append("description", description);
       formData.append("category_id", categoryId);
-      formData.append("base_price", lowPrice);
-      formData.append("old_price", highPrice);
+      formData.append("base_price", highPrice);
+      formData.append("sale_price", lowPrice);
       formData.append("stock", stock);
       formData.append("sizes", JSON.stringify(["S", "M", "L", "XL"]));
       formData.append("colors", JSON.stringify([{ name: colorName, hex: colorHex }]));

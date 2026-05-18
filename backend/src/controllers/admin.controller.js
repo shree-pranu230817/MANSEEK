@@ -34,7 +34,10 @@ const createProduct = async (req, res, next) => {
     const tags = req.body.tags ? JSON.parse(req.body.tags) : [];
 
     const { data, error } = await supabase.from('products').insert([{
-      ...productData,
+      name: productData.name,
+      slug: productData.slug,
+      description: productData.description,
+      category_id: productData.category_id,
       sizes,
       colors,
       tags,

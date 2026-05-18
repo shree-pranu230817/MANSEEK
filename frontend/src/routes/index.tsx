@@ -19,8 +19,8 @@ export const Route = createFileRoute("/")({
     const prodData = prodRes.ok ? await prodRes.json() : { products: [] };
     const mappedProducts = prodData.products.map((p: any) => ({
       ...p,
-      price: p.base_price,
-      oldPrice: p.old_price,
+      price: p.sale_price || p.base_price,
+      oldPrice: p.sale_price ? p.base_price : null,
     }));
     return { categories, products: mappedProducts };
   },

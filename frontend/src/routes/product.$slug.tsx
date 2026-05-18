@@ -19,8 +19,8 @@ export const Route = createFileRoute("/product/$slug")({
     
     const prod = {
       ...data,
-      price: data.base_price,
-      oldPrice: data.old_price,
+      price: data.sale_price || data.base_price,
+      oldPrice: data.sale_price ? data.base_price : null,
       rating: data.average_rating || 5,
       reviews: data.review_count || 0,
       category: data.categories?.slug || data.category_id,
@@ -33,8 +33,8 @@ export const Route = createFileRoute("/product/$slug")({
       .slice(0, 4)
       .map((p: any) => ({
         ...p,
-        price: p.base_price,
-        oldPrice: p.old_price,
+        price: p.sale_price || p.base_price,
+        oldPrice: p.sale_price ? p.base_price : null,
         rating: p.average_rating || 5,
         reviews: p.review_count || 0,
         category: p.categories?.slug || p.category_id,
