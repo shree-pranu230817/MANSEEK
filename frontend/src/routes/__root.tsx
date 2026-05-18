@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { Header } from "@/components/ms/Header";
 import { Footer } from "@/components/ms/Footer";
 import { CartDrawer } from "@/components/ms/CartDrawer";
+import { WishlistDrawer } from "@/components/ms/WishlistDrawer";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -108,6 +109,7 @@ function RootComponent() {
       </main>
       {!isAdmin && <Footer />}
       <CartDrawer />
+      <WishlistDrawer />
       <Toaster
         theme="dark"
         position="bottom-right"

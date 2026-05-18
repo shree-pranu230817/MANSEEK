@@ -66,7 +66,7 @@ function Custom() {
             <p className="text-xs text-mid-gray mt-1">Made to order · 7–10 day production</p>
             <MSButton size="lg" className="w-full mt-4" onClick={() => {
               const msg = encodeURIComponent(`Hi, I'd like to order a Custom ${base} in color ${color} with text: "${text}"`);
-              window.open(`https://wa.me/?text=${msg}`, '_blank');
+              window.open(`https://wa.me/918088711996?text=${msg}`, '_blank');
             }}>
               Order via WhatsApp
             </MSButton>

@@ -2,6 +2,7 @@ import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { ShoppingBag, Menu, X, User, Heart, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/store/cart";
+import { useWishlist } from "@/store/wishlist";
 import { useUI } from "@/store/ui";
 import { useAuth } from "@/store/auth";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,8 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const totalItems = useCart((s) => s.totalItems());
   const openCart = useUI((s) => s.openCart);
+  const openWishlist = useUI((s) => s.openWishlist);
+  const wishlistItems = useWishlist((s) => s.items.length);
   const user = useAuth((s) => s.user);
   const location = useLocation();
   const router = useRouter();
@@ -44,7 +47,7 @@ export function Header() {
           to="/"
           className="flex items-center gap-3 font-display text-2xl tracking-[0.2em] text-white hover:text-lime transition"
         >
-          <img src="/logo.svg" alt="ManSeek Logo" className="h-8" />
+          <img src="/logo.png" alt="ManSeek Logo" className="h-8" />
           MANSEEK
         </Link>
 
@@ -72,9 +75,15 @@ export function Header() {
             <>
               <button
                 aria-label="Wishlist"
-                className="hidden md:grid h-10 w-10 place-items-center text-white hover:text-lime transition"
+                onClick={openWishlist}
+                className="relative hidden md:grid h-10 w-10 place-items-center text-white hover:text-lime transition"
               >
                 <Heart className="h-5 w-5" />
+                {wishlistItems > 0 && (
+                  <span className="absolute top-1 right-0 min-w-4 h-4 px-1 grid place-items-center rounded-full bg-lime text-black text-[9px] font-bold">
+                    {wishlistItems}
+                  </span>
+                )}
               </button>
               <button
                 aria-label="Account"
@@ -117,7 +126,7 @@ export function Header() {
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <div className="h-16 px-4 flex items-center justify-between border-b border-dark-gray">
             <span className="flex items-center gap-3 font-display text-2xl tracking-[0.2em]">
-              <img src="/logo.svg" alt="ManSeek Logo" className="h-8" />
+              <img src="/logo.png" alt="ManSeek Logo" className="h-8" />
               MANSEEK
             </span>
             <button onClick={() => setMobileOpen(false)} className="text-white">

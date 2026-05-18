@@ -6,12 +6,15 @@ import { toast } from "sonner";
 import type { Product } from "@/lib/mock-data";
 import { formatINR } from "@/lib/format";
 import { useCart } from "@/store/cart";
+import { useWishlist } from "@/store/wishlist";
 import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: Product }) {
   const [hover, setHover] = useState(false);
   const [size, setSize] = useState<string | null>(null);
   const addItem = useCart((s) => s.addItem);
+  const toggleWishlist = useWishlist((s) => s.toggleItem);
+  const isWishlisted = useWishlist((s) => s.hasItem(product.id));
   const soldOut = product.badge === "SOLD OUT";
 
   const quickAdd = () => {
@@ -80,11 +83,23 @@ export function ProductCard({ product }: { product: Product }) {
           aria-label="Wishlist"
           onClick={(e) => {
             e.preventDefault();
-            toast("Saved to wishlist");
+            toggleWishlist({
+              productId: product.id,
+              slug: product.slug,
+              name: product.name,
+              image: product.images[0],
+              price: product.price,
+              categoryLabel: product.categoryLabel,
+            });
+            if (isWishlisted) {
+              toast.success(`Removed ${product.name} from wishlist`);
+            } else {
+              toast.success(`Added ${product.name} to wishlist!`);
+            }
           }}
           className="absolute top-3 right-3 h-9 w-9 grid place-items-center rounded-full bg-black/40 backdrop-blur text-white hover:text-lime transition"
         >
-          <Heart className="h-4 w-4" />
+          <Heart className={cn("h-4 w-4", isWishlisted && "fill-lime text-lime")} />
         </button>
 
         {!soldOut && (

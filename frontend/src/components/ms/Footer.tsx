@@ -37,9 +37,9 @@ export function Footer() {
             title: "Help",
             links: [
               { to: "/track-order", label: "Track Order" },
-              { to: "#", label: "Size Guide" },
-              { to: "#", label: "Returns" },
-              { to: "#", label: "Contact" },
+              { to: "mailto:manseek2025@gmail.com", label: "manseek2025@gmail.com" },
+              { to: "https://wa.me/918088711996", label: "WhatsApp Support" },
+              { to: "mailto:manseek2025@gmail.com", label: "Customer Support" },
             ],
           },
           {
