@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const createRazorpayOrder = async (req, res, next) => {
   try {
-    const { items, addressId, couponCode } = req.body;
+    const { items, addressId, shippingAddress, couponCode } = req.body;
     const userId = req.user.userId;
 
     // Fetch product details to calculate real subtotal safely
@@ -36,8 +36,14 @@ const createRazorpayOrder = async (req, res, next) => {
     const receiptId = uuidv4();
     const rzpOrder = await razorpayService.createRazorpayOrder(total, receiptId);
 
-    // Fetch address for snapshot
-    const { data: address } = await supabase.from('addresses').select('*').eq('id', addressId).single();
+    // Fetch address or use shippingAddress for snapshot
+    let address = null;
+    if (addressId) {
+      const { data: addr } = await supabase.from('addresses').select('*').eq('id', addressId).single();
+      address = addr;
+    } else if (shippingAddress) {
+      address = shippingAddress;
+    }
 
     // Insert pending order
     const { data: order, error } = await supabase.from('orders').insert([{
@@ -55,10 +61,12 @@ const createRazorpayOrder = async (req, res, next) => {
     if (error) throw error;
 
     res.json({
+      id: rzpOrder.id,
       razorpay_order_id: rzpOrder.id,
       amount: rzpOrder.amount,
       currency: rzpOrder.currency,
-      order_id: order.id
+      order_id: order.id,
+      receipt: order.id
     });
   } catch (error) {
     next(error);
@@ -67,7 +75,10 @@ const createRazorpayOrder = async (req, res, next) => {
 
 const verifyPayment = async (req, res, next) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_id } = req.body;
+    const razorpay_order_id = req.body.razorpay_order_id || req.body.razorpayOrderId;
+    const razorpay_payment_id = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
+    const razorpay_signature = req.body.razorpay_signature || req.body.razorpaySignature;
+    const order_id = req.body.order_id || req.body.orderId;
 
     const isValid = razorpayService.verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
     if (!isValid) return res.status(400).json({ error: 'Invalid payment signature' });
