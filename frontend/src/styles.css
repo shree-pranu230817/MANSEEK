@@ -1,0 +1,163 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Playfair+Display:ital,wght@1,500&display=swap");
+
+@custom-variant dark (&:is(.dark *));
+
+/* ManSeek — Street Luxury design system */
+
+@theme inline {
+  --font-display: "Bebas Neue", system-ui, sans-serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-accent: "Playfair Display", Georgia, serif;
+
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--charcoal);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--off-black);
+  --color-popover-foreground: var(--fg);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--black);
+  --color-secondary: var(--charcoal);
+  --color-secondary-foreground: var(--fg);
+  --color-muted: var(--charcoal);
+  --color-muted-foreground: var(--light-gray);
+  --color-accent: var(--primary);
+  --color-accent-foreground: var(--black);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--white);
+  --color-border: var(--dark-gray);
+  --color-input: var(--dark-gray);
+  --color-ring: var(--primary);
+
+  --color-black: var(--black);
+  --color-off-black: var(--off-black);
+  --color-charcoal: var(--charcoal);
+  --color-dark-gray: var(--dark-gray);
+  --color-mid-gray: var(--mid-gray);
+  --color-light-gray: var(--light-gray);
+  --color-off-white: var(--off-white);
+  --color-white: var(--white);
+  --color-lime: var(--primary);
+  --color-lime-dark: var(--primary-dark);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+}
+
+:root {
+  --black: #0a0a0a;
+  --off-black: #111111;
+  --charcoal: #1a1a1a;
+  --dark-gray: #2a2a2a;
+  --mid-gray: #555555;
+  --light-gray: #aaaaaa;
+  --off-white: #f5f5f0;
+  --white: #ffffff;
+
+  --primary: #e8ff47;
+  --primary-dark: #c8df27;
+  --danger: #ff3b30;
+  --success: #34c759;
+
+  --bg: #0a0a0a;
+  --fg: #f5f5f0;
+
+  --gradient-hero: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  --gradient-card: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.92) 100%);
+  --gradient-lime: linear-gradient(135deg, #e8ff47, #a8c000);
+
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-lime: 0 0 32px rgba(232, 255, 71, 0.25);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--black);
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+  .bg-gradient-lime {
+    background: var(--gradient-lime);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-hover {
+    box-shadow: var(--shadow-hover);
+  }
+  .shadow-lime {
+    box-shadow: var(--shadow-lime);
+  }
+  .noise::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/></svg>");
+  }
+  .marquee {
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+    gap: 3rem;
+  }
+  .marquee-track {
+    display: flex;
+    gap: 3rem;
+    flex-shrink: 0;
+    animation: marquee 30s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    scrollbar-width: none;
+  }
+}

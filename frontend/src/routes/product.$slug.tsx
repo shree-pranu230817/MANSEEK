@@ -1,0 +1,310 @@
+import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { Star, Minus, Plus, ChevronDown, Truck, RefreshCw, Ruler } from "lucide-react";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { getProduct, products } from "@/lib/mock-data";
+import { formatINR } from "@/lib/format";
+import { MSButton } from "@/components/ms/Button";
+import { ProductCard } from "@/components/ms/ProductCard";
+import { useCart } from "@/store/cart";
+import { useUI } from "@/store/ui";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/product/$slug")({
+  loader: async ({ params }) => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${params.slug}`);
+    if (!res.ok) throw notFound();
+    const data = await res.json();
+    
+    const prod = {
+      ...data,
+      price: data.base_price,
+      oldPrice: data.old_price,
+      rating: data.average_rating || 5,
+      reviews: data.review_count || 0,
+      category: data.categories?.slug || data.category_id,
+    };
+
+    const relatedRes = await fetch(`${import.meta.env.VITE_API_URL}/products?category=${prod.category}&limit=5`);
+    const relatedData = relatedRes.ok ? await relatedRes.json() : { products: [] };
+    const related = relatedData.products
+      .filter((p: any) => p.id !== prod.id)
+      .slice(0, 4)
+      .map((p: any) => ({
+        ...p,
+        price: p.base_price,
+        oldPrice: p.old_price,
+        rating: p.average_rating || 5,
+        reviews: p.review_count || 0,
+        category: p.categories?.slug || p.category_id,
+      }));
+
+    return { product: prod, related };
+  },
+  head: ({ loaderData }) => ({
+    meta: loaderData
+      ? [
+          { title: `${loaderData.product.name} — ManSeek` },
+          { name: "description", content: loaderData.product.description },
+          { property: "og:title", content: `${loaderData.product.name} — ManSeek` },
+          { property: "og:description", content: loaderData.product.description },
+          { property: "og:image", content: loaderData.product.images[0] },
+        ]
+      : [],
+  }),
+  component: ProductDetail,
+});
+
+function ProductDetail() {
+  const { product, related } = Route.useLoaderData();
+  const router = useRouter();
+  const [activeImg, setActiveImg] = useState(0);
+  const [size, setSize] = useState<string | null>(null);
+  const [color, setColor] = useState(product.colors[0].name);
+  const [qty, setQty] = useState(1);
+  const addItem = useCart((s) => s.addItem);
+  const openCart = useUI((s) => s.openCart);
+  const soldOut = product.stock === 0 || product.badge === "SOLD OUT";
+
+  const onAdd = (buyNow = false) => {
+    if (soldOut) return;
+    if (!size) {
+      toast.error("Pick a size");
+      return;
+    }
+    addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.images[0],
+      price: product.price,
+      size,
+      color,
+      quantity: qty,
+    });
+    if (buyNow) {
+      router.navigate({ to: "/checkout" });
+    } else {
+      toast.success("Added to cart");
+      openCart();
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-[1400px] px-4 lg:px-8 py-10">
+      <nav className="text-xs text-light-gray tracking-widest mb-6">
+        <Link to="/" className="hover:text-lime">HOME</Link> /{" "}
+        <Link to="/shop" className="hover:text-lime">SHOP</Link> /{" "}
+        <span className="text-white">{product.name.toUpperCase()}</span>
+      </nav>
+
+      <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
+        {/* Gallery */}
+        <div>
+          <motion.div
+            key={activeImg}
+            initial={{ opacity: 0.6 }}
+            animate={{ opacity: 1 }}
+            className="aspect-[3/4] bg-charcoal rounded-md overflow-hidden"
+          >
+            <img
+              src={product.images[activeImg]}
+              alt={product.name}
+              className="h-full w-full object-cover"
+            />
+          </motion.div>
+          <div className="mt-3 grid grid-cols-4 gap-3">
+            {product.images.map((img: string, i: number) => (
+              <button
+                key={i}
+                onClick={() => setActiveImg(i)}
+                className={cn(
+                  "aspect-square bg-charcoal rounded-sm overflow-hidden transition",
+                  activeImg === i ? "ring-2 ring-lime" : "opacity-60 hover:opacity-100",
+                )}
+              >
+                <img src={img} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Info */}
+        <div>
+          <p className="text-xs text-light-gray uppercase tracking-[0.3em]">ManSeek</p>
+          <h1 className="mt-2 font-display text-5xl lg:text-6xl tracking-tight leading-none">
+            {product.name}
+          </h1>
+
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex text-lime">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={cn(
+                    "h-4 w-4",
+                    i < Math.round(product.rating) ? "fill-current" : "",
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-sm text-light-gray">
+              {product.rating} ({product.reviews})
+            </span>
+          </div>
+
+          <div className="mt-5 flex items-baseline gap-3">
+            <span className="font-display text-4xl text-lime">
+              {formatINR(product.price)}
+            </span>
+            {product.oldPrice && (
+              <span className="text-mid-gray line-through">
+                {formatINR(product.oldPrice)}
+              </span>
+            )}
+            {product.oldPrice && (
+              <span className="text-success text-sm font-medium">
+                {Math.round((1 - product.price / product.oldPrice) * 100)}% OFF
+              </span>
+            )}
+          </div>
+
+          {/* Size */}
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-display tracking-widest text-sm">SIZE</p>
+              <button className="text-xs text-light-gray hover:text-lime inline-flex items-center gap-1">
+                <Ruler className="h-3 w-3" /> Size guide
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {product.sizes.map((s: string) => (
+                <button
+                  key={s}
+                  onClick={() => setSize(s)}
+                  className={cn(
+                    "h-11 min-w-11 px-3 rounded-sm border text-sm font-medium transition",
+                    size === s
+                      ? "bg-lime text-black border-lime"
+                      : "border-dark-gray text-light-gray hover:border-white hover:text-white",
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color */}
+          <div className="mt-6">
+            <p className="font-display tracking-widest text-sm mb-3">
+              COLOR · <span className="text-light-gray font-sans normal-case">{color}</span>
+            </p>
+            <div className="flex gap-2">
+              {product.colors.map((c: { name: string; hex: string }) => (
+                <button
+                  key={c.name}
+                  onClick={() => setColor(c.name)}
+                  className={cn(
+                    "h-10 w-10 rounded-full border-2 transition",
+                    color === c.name ? "border-lime" : "border-dark-gray hover:border-white",
+                  )}
+                  style={{ background: c.hex }}
+                  aria-label={c.name}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Qty */}
+          <div className="mt-6 flex items-center gap-4">
+            <p className="font-display tracking-widest text-sm">QTY</p>
+            <div className="flex items-center border border-dark-gray rounded-sm">
+              <button onClick={() => setQty(Math.max(1, qty - 1))} className="h-11 w-11 grid place-items-center hover:text-lime">
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="w-10 text-center">{qty}</span>
+              <button onClick={() => setQty(qty + 1)} className="h-11 w-11 grid place-items-center hover:text-lime">
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="mt-8 grid gap-3">
+            <MSButton size="lg" onClick={() => onAdd(false)} disabled={soldOut}>
+              {soldOut ? "Sold Out" : "Add to Cart"}
+            </MSButton>
+            <MSButton variant="outline" size="lg" onClick={() => onAdd(true)} disabled={soldOut}>
+              Buy Now
+            </MSButton>
+          </div>
+
+          {/* Accordions */}
+          <div className="mt-10 space-y-1 border-t border-dark-gray">
+            {[
+              { t: "Description", c: product.description, icon: null },
+              {
+                t: "Shipping",
+                c: "Free shipping on orders above ₹999. Standard delivery 3–6 days. Express 1–2 days.",
+                icon: <Truck className="h-4 w-4" />,
+              },
+              {
+                t: "Returns",
+                c: "Easy 7-day returns. Item must be unworn with tags attached. Custom items final sale.",
+                icon: <RefreshCw className="h-4 w-4" />,
+              },
+            ].map((a) => (
+              <Accordion key={a.t} title={a.t} icon={a.icon}>
+                {a.c}
+              </Accordion>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Related */}
+      {related.length > 0 && (
+        <section className="mt-24">
+          <h2 className="font-display text-4xl lg:text-5xl tracking-tight mb-8">
+            YOU MIGHT ALSO LIKE
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {related.map((p:any) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function Accordion({
+  title,
+  children,
+  icon,
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-dark-gray">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-4 text-left"
+      >
+        <span className="font-display tracking-widest text-sm flex items-center gap-2">
+          {icon} {title}
+        </span>
+        <ChevronDown
+          className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
+        />
+      </button>
+      {open && <div className="pb-4 text-sm text-light-gray leading-relaxed">{children}</div>}
+    </div>
+  );
+}
