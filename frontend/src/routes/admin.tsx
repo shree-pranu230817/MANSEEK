@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation, useRouter } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LayoutDashboard, Package, ShoppingBag, LogOut } from "lucide-react";
 import { useAuth } from "@/store/auth";
 import { cn } from "@/lib/utils";
@@ -15,10 +15,25 @@ function AdminLayout() {
   const router = useRouter();
   const location = useLocation();
   const isLogin = location.pathname === "/admin/login";
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isLogin && user?.role !== "admin") router.navigate({ to: "/admin/login" });
-  }, [user, isLogin, router]);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isLogin && user?.role !== "admin") {
+      router.navigate({ to: "/admin/login" });
+    }
+  }, [mounted, user, isLogin, router]);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-dvh bg-black flex items-center justify-center font-display text-mid-gray animate-pulse">
+        Initializing Admin...
+      </div>
+    );
+  }
 
   if (isLogin) return <Outlet />;
   if (user?.role !== "admin") return null;

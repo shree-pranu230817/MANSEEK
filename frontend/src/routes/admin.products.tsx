@@ -225,7 +225,14 @@ function AdminProducts() {
                       <span>{p.name}</span>
                     </td>
                     <td className="capitalize">{cat?.name || "Streetwear"}</td>
-                    <td className="text-lime">{formatINR(parseFloat(p.base_price))}</td>
+                    <td>
+                      <div className="flex flex-col">
+                        <span className="text-lime font-bold">{formatINR(parseFloat(p.sale_price || p.base_price))}</span>
+                        {p.sale_price && (
+                          <span className="text-xs text-mid-gray line-through">{formatINR(parseFloat(p.base_price))}</span>
+                        )}
+                      </div>
+                    </td>
                     <td>{p.stock}</td>
                     <td>
                       <div className="flex gap-1.5">
