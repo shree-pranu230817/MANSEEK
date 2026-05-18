@@ -78,7 +78,7 @@ function AdminOrders() {
             </thead>
             <tbody>
               {orders.map((o) => {
-                const customerName = o.address?.full_name || o.users?.name || "Guest";
+                const customerName = o.address?.fullName || o.address?.full_name || o.users?.name || "Guest";
                 const orderDate = new Date(o.created_at).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -159,12 +159,14 @@ function AdminOrders() {
                             <div className="space-y-4 border-l border-dark-gray/50 pl-6">
                               <div>
                                 <p className="text-xs uppercase tracking-widest text-lime font-bold mb-2">Shipping Information</p>
-                                <div className="text-xs text-light-gray space-y-1 bg-charcoal/30 p-3 rounded-sm border border-dark-gray/50">
-                                  <p className="text-white font-semibold">{o.address?.full_name}</p>
-                                  {o.address?.phone && <p>Phone: {o.address.phone}</p>}
-                                  <p>{o.address?.line1}</p>
-                                  {o.address?.line2 && <p>{o.address.line2}</p>}
-                                  <p>{o.address?.city}, {o.address?.state} - {o.address?.pincode}</p>
+                                <div className="text-xs text-light-gray space-y-1 bg-charcoal/30 p-4 rounded-sm border border-dark-gray/50 relative group">
+                                  <p className="text-white font-semibold text-sm">{o.address?.fullName || o.address?.full_name || "N/A"}</p>
+                                  <p className="text-lime font-bold text-xs mt-1">Phone: {o.address?.phone || "N/A"}</p>
+                                  {o.address?.email && <p className="text-xs">Email: {o.address.email}</p>}
+                                  <p className="mt-2 text-white font-mono bg-black/40 p-2 rounded border border-dark-gray select-all whitespace-pre-line leading-relaxed text-xs">
+                                    {`${o.address?.fullName || o.address?.full_name || ""}\n${o.address?.line1 || ""}${o.address?.line2 ? ", " + o.address.line2 : ""}\n${o.address?.city || ""}, ${o.address?.state || ""} - ${o.address?.pincode || ""}\nPhone: ${o.address?.phone || ""}`}
+                                  </p>
+                                  <p className="text-[10px] text-mid-gray mt-1 italic">Double-click or drag to select and copy full address instantly</p>
                                 </div>
                               </div>
                               
