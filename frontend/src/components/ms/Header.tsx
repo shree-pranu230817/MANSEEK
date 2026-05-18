@@ -16,6 +16,7 @@ const navLinks = [
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const totalItems = useCart((s) => s.totalItems());
   const openCart = useUI((s) => s.openCart);
   const openWishlist = useUI((s) => s.openWishlist);
@@ -25,6 +26,7 @@ export function Header() {
   const router = useRouter();
 
   useEffect(() => {
+    setMounted(true);
     const onScroll = () => setScrolled(window.scrollY > 20);
     onScroll();
     window.addEventListener("scroll", onScroll);
@@ -71,46 +73,48 @@ export function Header() {
           >
             <Search className="h-5 w-5" />
           </button>
-          {user ? (
-            <>
-              <button
-                aria-label="Wishlist"
-                onClick={openWishlist}
-                className="relative hidden md:grid h-10 w-10 place-items-center text-white hover:text-lime transition"
-              >
-                <Heart className="h-5 w-5" />
-                {wishlistItems > 0 && (
-                  <span className="absolute top-1 right-0 min-w-4 h-4 px-1 grid place-items-center rounded-full bg-lime text-black text-[9px] font-bold">
-                    {wishlistItems}
-                  </span>
-                )}
-              </button>
-              <button
-                aria-label="Account"
-                onClick={() => router.navigate({ to: "/account" })}
-                className="grid h-10 w-10 place-items-center text-white hover:text-lime transition"
-              >
-                <User className="h-5 w-5" />
-              </button>
-              <button
-                aria-label="Cart"
-                onClick={openCart}
-                className="relative grid h-10 w-10 place-items-center text-white hover:text-lime transition"
-              >
-                <ShoppingBag className="h-5 w-5" />
-                {totalItems > 0 && (
-                  <span className="absolute top-1 right-0 min-w-5 h-5 px-1 grid place-items-center rounded-full bg-lime text-black text-[10px] font-bold">
-                    {totalItems}
-                  </span>
-                )}
-              </button>
-            </>
-          ) : (
-            <Link to="/login">
-              <button className="px-5 py-2 rounded-pill bg-lime text-black font-display tracking-widest text-xs hover:bg-lime/80 transition ml-2">
-                LOGIN
-              </button>
-            </Link>
+          {mounted && (
+            user ? (
+              <>
+                <button
+                  aria-label="Wishlist"
+                  onClick={openWishlist}
+                  className="relative hidden md:grid h-10 w-10 place-items-center text-white hover:text-lime transition"
+                >
+                  <Heart className="h-5 w-5" />
+                  {wishlistItems > 0 && (
+                    <span className="absolute top-1 right-0 min-w-4 h-4 px-1 grid place-items-center rounded-full bg-lime text-black text-[9px] font-bold">
+                      {wishlistItems}
+                    </span>
+                  )}
+                </button>
+                <button
+                  aria-label="Account"
+                  onClick={() => router.navigate({ to: "/account" })}
+                  className="grid h-10 w-10 place-items-center text-white hover:text-lime transition"
+                >
+                  <User className="h-5 w-5" />
+                </button>
+                <button
+                  aria-label="Cart"
+                  onClick={openCart}
+                  className="relative grid h-10 w-10 place-items-center text-white hover:text-lime transition"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  {totalItems > 0 && (
+                    <span className="absolute top-1 right-0 min-w-5 h-5 px-1 grid place-items-center rounded-full bg-lime text-black text-[10px] font-bold">
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+              </>
+            ) : (
+              <Link to="/login">
+                <button className="px-5 py-2 rounded-pill bg-lime text-black font-display tracking-widest text-xs hover:bg-lime/80 transition ml-2">
+                  LOGIN
+                </button>
+              </Link>
+            )
           )}
           <button
             aria-label="Menu"
@@ -144,13 +148,15 @@ export function Header() {
                 {l.label}
               </Link>
             ))}
-            <Link
-              to={user ? "/account" : "/login"}
-              className="hover:text-lime"
-              onClick={() => setMobileOpen(false)}
-            >
-              {user ? "Account" : "Login"}
-            </Link>
+            {mounted && (
+              <Link
+                to={user ? "/account" : "/login"}
+                className="hover:text-lime"
+                onClick={() => setMobileOpen(false)}
+              >
+                {user ? "Account" : "Login"}
+              </Link>
+            )}
           </nav>
         </div>
       )}
