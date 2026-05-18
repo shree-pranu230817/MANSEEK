@@ -20,6 +20,7 @@ function Account() {
   const [activeTab, setActiveTab] = useState<"orders" | "profile" | "addresses" | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // Profile Edit states
   const [editName, setEditName] = useState(user?.name || "");
@@ -164,7 +165,7 @@ function Account() {
               {orders.map((o) => (
                 <div
                   key={o.id}
-                  className="bg-off-black border border-dark-gray rounded-md p-6 space-y-4"
+                  className="bg-off-black border border-dark-gray rounded-md p-6 space-y-4 transition-all duration-300 hover:border-lime/30"
                 >
                   <div className="flex justify-between items-start border-b border-dark-gray pb-4">
                     <div>
@@ -209,6 +210,57 @@ function Account() {
                         </p>
                       )}
                     </div>
+                  </div>
+
+                  {/* Expanded Items details */}
+                  {expandedOrderId === o.id && o.items && o.items.length > 0 && (
+                    <div className="border-t border-dark-gray pt-4 mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <p className="text-xs uppercase tracking-widest text-lime font-bold">Ordered Items</p>
+                      <div className="space-y-3">
+                        {o.items.map((item: any, idx: number) => (
+                          <div key={idx} className="flex gap-4 items-center bg-charcoal/30 p-3 rounded-sm border border-dark-gray/50">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="h-16 w-14 object-cover rounded bg-charcoal border border-dark-gray"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-display text-base leading-tight truncate text-white">
+                                {item.name}
+                              </p>
+                              <p className="text-xs text-light-gray uppercase tracking-widest mt-1">
+                                Size {item.size || "M"} · {item.color || "Black"} · Qty {item.quantity}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-display text-base text-lime">
+                                {formatINR((item.price || o.total / o.items.length) * item.quantity)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Price Breakdown */}
+                      <div className="border-t border-dark-gray/50 pt-4 flex flex-col items-end text-xs text-light-gray space-y-1">
+                        <div>Subtotal: <span className="text-white font-mono">{formatINR(parseFloat(o.subtotal || o.total))}</span></div>
+                        {parseFloat(o.discount) > 0 && <div>Discount: <span className="text-danger font-mono">-{formatINR(parseFloat(o.discount))}</span></div>}
+                        {parseFloat(o.shipping_charge) > 0 && <div>Shipping: <span className="text-white font-mono">+{formatINR(parseFloat(o.shipping_charge))}</span></div>}
+                        <div className="text-sm font-bold text-lime mt-1">Grand Total: <span className="font-display text-base">{formatINR(parseFloat(o.total))}</span></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center border-t border-dark-gray/50 pt-4 mt-2">
+                    <button
+                      onClick={() => setExpandedOrderId(expandedOrderId === o.id ? null : o.id)}
+                      className="text-xs text-lime uppercase tracking-widest hover:underline focus:outline-none"
+                    >
+                      {expandedOrderId === o.id ? "Hide Details ↑" : "View Details (Items & Receipt) ↓"}
+                    </button>
+                    <p className="text-[10px] text-mid-gray uppercase tracking-widest">
+                      {o.items?.length || 1} Item(s)
+                    </p>
                   </div>
                 </div>
               ))}
