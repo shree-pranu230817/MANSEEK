@@ -23,7 +23,7 @@ function AdminProducts() {
   const [highPrice, setHighPrice] = useState("");
   const [lowPrice, setLowPrice] = useState("");
   const [stock, setStock] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   
   // Custom Color states
   const [colorName, setColorName] = useState("Black");
@@ -100,15 +100,32 @@ function AdminProducts() {
     }
   };
 
+  const handleImageFilesChange = (incoming: FileList | null) => {
+    if (!incoming) return;
+    const arr = Array.from(incoming);
+    setImageFiles((prev) => {
+      const combined = [...prev, ...arr];
+      return combined.slice(0, 5); // max 5 images
+    });
+  };
+
+  const removeImageFile = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!categoryId) {
       toast.error("Please select a category");
       return;
     }
+    if (imageFiles.length === 0) {
+      toast.error("Please add at least one product image");
+      return;
+    }
 
     try {
-      toast.loading("Creating product and uploading image...", { id: "add-product" });
+      toast.loading(`Creating product and uploading ${imageFiles.length} image(s)...`, { id: "add-product" });
       
       const formData = new FormData();
       formData.append("name", name);
@@ -121,8 +138,8 @@ function AdminProducts() {
       formData.append("sizes", JSON.stringify(["S", "M", "L", "XL"]));
       formData.append("colors", JSON.stringify([{ name: colorName, hex: colorHex }]));
       
-      if (imageFile) {
-        formData.append("images", imageFile);
+      for (const file of imageFiles) {
+        formData.append("images", file);
       }
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/products`, {
@@ -136,7 +153,7 @@ function AdminProducts() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create product");
 
-      toast.success("Product created successfully with image uploaded to Supabase!", { id: "add-product" });
+      toast.success(`Product created with ${imageFiles.length} image(s) uploaded!`, { id: "add-product" });
       setShowModal(false);
       
       // Reset form
@@ -148,7 +165,7 @@ function AdminProducts() {
       setStock("");
       setColorName("Black");
       setColorHex("#000000");
-      setImageFile(null);
+      setImageFiles([]);
 
       // Reload
       loadData();
@@ -445,16 +462,67 @@ function AdminProducts() {
               </div>
 
               <div>
-                <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
-                  Product Image File
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  required
-                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                  className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm pt-1.5"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-light-gray uppercase tracking-widest">
+                    Product Images
+                  </label>
+                  <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm ${
+                    imageFiles.length >= 5 ? "bg-lime/20 text-lime border border-lime/40" : "bg-charcoal text-mid-gray border border-dark-gray"
+                  }`}>
+                    {imageFiles.length} / 5
+                  </span>
+                </div>
+
+                {/* Thumbnails */}
+                {imageFiles.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2 mb-2">
+                    {imageFiles.map((file, idx) => {
+                      const url = URL.createObjectURL(file);
+                      return (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={url}
+                            alt={`preview-${idx}`}
+                            className="h-14 w-full object-cover rounded-sm border border-dark-gray group-hover:border-lime/50 transition-colors"
+                          />
+                          {idx === 0 && (
+                            <span className="absolute bottom-0 left-0 right-0 text-center text-[8px] font-bold uppercase tracking-widest bg-lime/90 text-black py-0.5 rounded-b-sm">
+                              Primary
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImageFile(idx)}
+                            className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-danger text-white rounded-full text-[9px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* File input — hidden when 5 reached */}
+                {imageFiles.length < 5 ? (
+                  <label className="flex items-center justify-center gap-2 h-10 w-full bg-charcoal border border-dashed border-dark-gray hover:border-lime/60 rounded-sm cursor-pointer transition-colors group">
+                    <span className="text-xs text-mid-gray group-hover:text-lime transition-colors">
+                      {imageFiles.length === 0 ? "📎 Click to add images (up to 5)" : "＋ Add more images"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleImageFilesChange(e.target.files)}
+                    />
+                  </label>
+                ) : (
+                  <div className="flex items-center justify-center h-10 w-full bg-lime/5 border border-lime/30 rounded-sm">
+                    <span className="text-xs text-lime font-bold tracking-wider">✓ Maximum 5 images reached</span>
+                  </div>
+                )}
+                <p className="text-[10px] text-mid-gray mt-1">First image is used as the cover. Drag the files in preferred order before uploading.</p>
               </div>
 
               <div className="flex gap-4 pt-2">
