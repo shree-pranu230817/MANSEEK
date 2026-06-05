@@ -301,7 +301,7 @@ function AdminProducts() {
 
       {/* GORGEOUS MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 backdrop-blur-sm p-4 py-8">
           <div className="w-full max-w-lg bg-off-black border border-dark-gray rounded-md p-8 space-y-6 relative">
             <button
               onClick={() => setShowModal(false)}
