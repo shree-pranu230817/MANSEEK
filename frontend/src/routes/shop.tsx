@@ -177,7 +177,9 @@ function Shop() {
             >
               All
             </button>
-            {categories.map((c: any) => (
+            {categories
+              .filter((c: any) => !["joggers", "accessories"].includes(c.slug))
+              .map((c: any) => (
               <button
                 key={c.slug}
                 onClick={() =>

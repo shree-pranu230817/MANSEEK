@@ -49,8 +49,7 @@ export function Footer() {
             title: "Shop",
             links: [
               { to: "/shop", label: "All" },
-              { to: "/shop?category=tees", label: "Tees" },
-              { to: "/shop?category=hoodies", label: "Hoodies" },
+              { to: "/shop?category=tshirts", label: "Tees" },
               { to: "/custom", label: "Custom" },
             ],
           },

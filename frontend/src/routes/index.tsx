@@ -7,20 +7,17 @@ import hero3 from "@/assets/hero-3.jpg";
 import customCta from "@/assets/custom-cta.jpg";
 import catTees from "@/assets/cat-tees.jpg";
 import catHoodies from "@/assets/cat-hoodies.jpg";
-import catPants from "@/assets/cat-pants.jpg";
-import catAcc from "@/assets/cat-acc.jpg";
 import catSweatshirts from "@/assets/cat-sweatshirts.jpg";
 import { MSButton } from "@/components/ms/Button";
 import { ProductCard } from "@/components/ms/ProductCard";
 import { Marquee } from "@/components/ms/Marquee";
 
+const HIDDEN_CATS = new Set(["joggers", "accessories"]);
+
 const CAT_FALLBACK: Record<string, string> = {
   tshirts: catTees,
   tees: catTees,
   hoodies: catHoodies,
-  joggers: catPants,
-  pants: catPants,
-  accessories: catAcc,
   sweatshirts: catSweatshirts,
   custom: catSweatshirts,
   default: catTees,
@@ -178,7 +175,9 @@ function Home() {
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((c: any, i: number) => (
+          {categories
+            .filter((c: any) => !HIDDEN_CATS.has(c.slug))
+            .map((c: any, i: number) => (
             <motion.div
               key={c.slug}
               initial={{ opacity: 0, y: 30 }}
