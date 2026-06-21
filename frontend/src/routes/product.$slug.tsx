@@ -1,9 +1,8 @@
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { Star, Minus, Plus, ChevronDown, Truck, RefreshCw, Ruler } from "lucide-react";
-import { motion } from "framer-motion";
+import { Star, Minus, Plus, ChevronDown, Truck, Ruler, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { getProduct, products } from "@/lib/mock-data";
 import { formatINR } from "@/lib/format";
 import { MSButton } from "@/components/ms/Button";
 import { ProductCard } from "@/components/ms/ProductCard";
@@ -63,6 +62,7 @@ function ProductDetail() {
   const [size, setSize] = useState<string | null>(null);
   const [color, setColor] = useState(product.colors[0].name);
   const [qty, setQty] = useState(1);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
   const addItem = useCart((s) => s.addItem);
   const openCart = useUI((s) => s.openCart);
   const soldOut = product.stock === 0 || product.badge === "SOLD OUT";
@@ -174,7 +174,10 @@ function ProductDetail() {
           <div className="mt-8">
             <div className="flex items-center justify-between mb-3">
               <p className="font-display tracking-widest text-sm">SIZE</p>
-              <button className="text-xs text-light-gray hover:text-lime inline-flex items-center gap-1">
+              <button
+                onClick={() => setShowSizeGuide(true)}
+                className="text-xs text-light-gray hover:text-lime inline-flex items-center gap-1 transition-colors"
+              >
                 <Ruler className="h-3 w-3" /> Size guide
               </button>
             </div>
@@ -259,6 +262,9 @@ function ProductDetail() {
         </div>
       </div>
 
+      {/* Size Guide Modal */}
+      <SizeGuideModal open={showSizeGuide} onClose={() => setShowSizeGuide(false)} />
+
       {/* Related */}
       {related.length > 0 && (
         <section className="mt-24">
@@ -301,5 +307,113 @@ function Accordion({
       </button>
       {open && <div className="pb-4 text-sm text-light-gray leading-relaxed">{children}</div>}
     </div>
+  );
+}
+
+function SizeGuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [tab, setTab] = useState<"chart" | "measure">("chart");
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 16 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl bg-off-black border border-dark-gray rounded-md overflow-hidden shadow-2xl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-dark-gray">
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.3em] text-lime uppercase">ManSeek</p>
+                <h2 className="font-display text-xl tracking-tight text-white mt-0.5">SIZE GUIDE</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="h-8 w-8 grid place-items-center rounded-sm border border-dark-gray text-light-gray hover:text-white hover:border-white transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-dark-gray">
+              {(["chart", "measure"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={cn(
+                    "flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors",
+                    tab === t
+                      ? "text-lime border-b-2 border-lime bg-lime/5"
+                      : "text-mid-gray hover:text-light-gray",
+                  )}
+                >
+                  {t === "chart" ? "📐 Size Chart" : "📏 How to Measure"}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto max-h-[70vh]">
+              <AnimatePresence mode="wait">
+                {tab === "chart" ? (
+                  <motion.div
+                    key="chart"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 8 }}
+                    transition={{ duration: 0.18 }}
+                    className="p-4"
+                  >
+                    <p className="text-[10px] text-mid-gray uppercase tracking-widest mb-3">All measurements in inches</p>
+                    <img
+                      src="/size chart.png"
+                      alt="ManSeek Size Chart — Chest, Length, Shoulder measurements for XXS to XXXL"
+                      className="w-full rounded-sm border border-dark-gray/50"
+                      draggable={false}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="measure"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.18 }}
+                    className="p-4"
+                  >
+                    <p className="text-[10px] text-mid-gray uppercase tracking-widest mb-3">How to take your measurements</p>
+                    <img
+                      src="/Measurement.png"
+                      alt="How to measure — Shoulder, Chest, and Length diagram"
+                      className="w-full rounded-sm border border-dark-gray/50"
+                      draggable={false}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Footer note */}
+            <div className="px-6 py-4 border-t border-dark-gray bg-charcoal/30">
+              <p className="text-[11px] text-mid-gray leading-relaxed">
+                <span className="text-lime font-bold">!</span>  Measurements in the size chart are based on <span className="text-white">body measurements</span>, not the garment. If you're between sizes, we recommend sizing up.
+              </p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
