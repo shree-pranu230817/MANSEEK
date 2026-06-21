@@ -184,4 +184,87 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
-module.exports = { getDashboardStats, createProduct, updateProduct, deleteProduct, getOrders, updateOrderStatus };
+const getMarqueeTags = async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('marquee_tags')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      if (error.code === 'P0001' || error.message.includes('relation "marquee_tags" does not exist') || error.code === '42P01') {
+        return res.json([
+          { id: '1', text: 'NEW ARRIVALS' },
+          { id: '2', text: 'FREE SHIPPING ABOVE ₹999' },
+          { id: '3', text: 'EXCLUSIVE DROPS' },
+          { id: '4', text: 'BUILT IN INDIA' }
+        ]);
+      }
+      throw error;
+    }
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addMarqueeTag = async (req, res, next) => {
+  try {
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+
+    const { data, error } = await supabase
+      .from('marquee_tags')
+      .insert([{ text }])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.message.includes('relation "marquee_tags" does not exist') || error.code === '42P01') {
+        return res.status(400).json({
+          error: 'The database table "marquee_tags" does not exist. Please run the SQL migration script from database-schema.sql in your Supabase SQL editor.'
+        });
+      }
+      throw error;
+    }
+    res.status(201).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteMarqueeTag = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('marquee_tags')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      if (error.message.includes('relation "marquee_tags" does not exist') || error.code === '42P01') {
+        return res.status(400).json({
+          error: 'The database table "marquee_tags" does not exist. Please run the SQL migration script from database-schema.sql in your Supabase SQL editor.'
+        });
+      }
+      throw error;
+    }
+    res.json({ message: 'Tag deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getDashboardStats,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getOrders,
+  updateOrderStatus,
+  getMarqueeTags,
+  addMarqueeTag,
+  deleteMarqueeTag
+};

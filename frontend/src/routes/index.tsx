@@ -25,18 +25,21 @@ const CAT_FALLBACK: Record<string, string> = {
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [catRes, prodRes] = await Promise.all([
+    const [catRes, prodRes, marqueeRes] = await Promise.all([
       fetch(`${import.meta.env.VITE_API_URL}/categories`),
-      fetch(`${import.meta.env.VITE_API_URL}/products?limit=4`)
+      fetch(`${import.meta.env.VITE_API_URL}/products?limit=4`),
+      fetch(`${import.meta.env.VITE_API_URL}/marquee`)
     ]);
     const categories = catRes.ok ? await catRes.json() : [];
     const prodData = prodRes.ok ? await prodRes.json() : { products: [] };
+    const marqueeTags = marqueeRes.ok ? await marqueeRes.json() : [];
+
     const mappedProducts = prodData.products.map((p: any) => ({
       ...p,
       price: p.sale_price || p.base_price,
       oldPrice: p.sale_price ? p.base_price : null,
     }));
-    return { categories, products: mappedProducts };
+    return { categories, products: mappedProducts, marqueeTags };
   },
   head: () => ({
     meta: [
@@ -54,7 +57,7 @@ export const Route = createFileRoute("/")({
 const heroLines = ["WEAR", "YOUR", "STORY."];
 
 function Home() {
-  const { categories, products: featured } = Route.useLoaderData();
+  const { categories, products: featured, marqueeTags } = Route.useLoaderData();
 
   return (
     <>
@@ -141,12 +144,16 @@ function Home() {
       </section>
 
       <Marquee
-        items={[
-          "NEW ARRIVALS",
-          "FREE SHIPPING ABOVE ₹999",
-          "EXCLUSIVE DROPS",
-          "BUILT IN INDIA",
-        ]}
+        items={
+          marqueeTags && marqueeTags.length > 0
+            ? marqueeTags.map((t: any) => t.text)
+            : [
+                "NEW ARRIVALS",
+                "FREE SHIPPING ABOVE ₹999",
+                "EXCLUSIVE DROPS",
+                "BUILT IN INDIA",
+              ]
+        }
       />
 
       {/* CATEGORIES */}

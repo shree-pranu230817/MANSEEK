@@ -18,4 +18,9 @@ router.post('/products', upload.array('images', 5), adminController.createProduc
 router.put('/products/:id', upload.array('images', 5), adminController.updateProduct);
 router.delete('/products/:id', adminController.deleteProduct);
 
+// Marquee tag management
+router.get('/marquee', adminController.getMarqueeTags);
+router.post('/marquee', adminController.addMarqueeTag);
+router.delete('/marquee/:id', adminController.deleteMarqueeTag);
+
 module.exports = router;

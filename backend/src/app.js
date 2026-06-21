@@ -26,6 +26,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/newsletter', require('./routes/newsletter'));
+app.use('/api/marquee', require('./routes/marquee'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Health check

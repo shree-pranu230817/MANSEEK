@@ -234,3 +234,24 @@ CREATE POLICY "products_public_read" ON products
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "categories_public" ON categories
   FOR SELECT TO anon, authenticated USING (TRUE);
+
+-- Table: marquee_tags
+CREATE TABLE IF NOT EXISTS marquee_tags (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  text        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed default marquee tags
+INSERT INTO marquee_tags (text) VALUES
+  ('NEW ARRIVALS'),
+  ('FREE SHIPPING ABOVE ₹999'),
+  ('EXCLUSIVE DROPS'),
+  ('BUILT IN INDIA');
+
+-- Enable RLS for marquee_tags
+ALTER TABLE marquee_tags ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "marquee_tags_public_read" ON marquee_tags
+  FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "marquee_tags_admin_write" ON marquee_tags
+  FOR ALL TO authenticated USING (TRUE) WITH CHECK (TRUE);

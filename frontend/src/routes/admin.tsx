@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Package, ShoppingBag, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Type } from "lucide-react";
 import { useAuth } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,7 @@ function AdminLayout() {
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/products", label: "Products", icon: Package },
     { to: "/admin/orders", label: "Orders", icon: ShoppingBag },
+    { to: "/admin/marquee", label: "Marquee Texts", icon: Type },
   ] as const;
 
   return (
