@@ -14,6 +14,9 @@ function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<any | null>(null);
+  const [stockEditProduct, setStockEditProduct] = useState<any | null>(null);
+  const [editSizeStock, setEditSizeStock] = useState<Record<string, number>>({});
+  const [stockNote, setStockNote] = useState("");
 
   // Form states
   const [name, setName] = useState("");
@@ -122,6 +125,38 @@ function AdminProducts() {
       loadData();
     } catch (err: any) {
       toast.error(err.message, { id: "update-sizes" });
+    }
+  };
+
+  const openStockEdit = (product: any) => {
+    const current: Record<string, number> =
+      product.size_stock && Object.keys(product.size_stock).length > 0
+        ? { ...product.size_stock }
+        : Object.fromEntries((product.sizes || []).map((s: string) => [s, product.stock || 0]));
+    setEditSizeStock(current);
+    setStockNote("");
+    setStockEditProduct(product);
+  };
+
+  const handleSaveStock = async () => {
+    if (!stockEditProduct) return;
+    try {
+      toast.loading("Updating stock...", { id: "edit-stock" });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/products/${stockEditProduct.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ size_stock: editSizeStock }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update stock");
+      toast.success(`Stock updated for ${stockEditProduct.name}!`, { id: "edit-stock" });
+      setStockEditProduct(null);
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message, { id: "edit-stock" });
     }
   };
 
@@ -321,12 +356,20 @@ function AdminProducts() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <button
-                        onClick={() => setProductToDelete(p)}
-                        className="text-xs uppercase tracking-widest text-danger hover:underline hover:text-red-400 font-bold font-display"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => openStockEdit(p)}
+                          className="text-xs uppercase tracking-widest text-lime hover:underline font-bold font-display"
+                        >
+                          Edit Stock
+                        </button>
+                        <button
+                          onClick={() => setProductToDelete(p)}
+                          className="text-xs uppercase tracking-widest text-danger hover:underline hover:text-red-400 font-bold font-display"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -654,6 +697,98 @@ function AdminProducts() {
                 </MSButton>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* STOCK EDIT MODAL */}
+      {stockEditProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-off-black border border-dark-gray rounded-md p-8 space-y-5 relative shadow-2xl">
+            <button
+              onClick={() => setStockEditProduct(null)}
+              className="absolute top-4 right-4 text-light-gray hover:text-white font-bold"
+            >
+              ✕
+            </button>
+            <div>
+              <p className="font-display tracking-[0.3em] text-xs text-lime">MANSEEK ADMIN</p>
+              <h2 className="font-display text-xl tracking-tight mt-1 text-white">EDIT STOCK</h2>
+              <p className="text-xs text-mid-gray mt-1 truncate">{stockEditProduct.name}</p>
+            </div>
+
+            {/* Offline sale banner */}
+            <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-sm px-3 py-2.5">
+              <span className="text-amber-400 text-sm mt-0.5">⚠</span>
+              <p className="text-[11px] text-amber-300 leading-relaxed">
+                Use this to manually adjust stock after an <span className="font-bold">offline sale</span> or inventory correction. Online orders update automatically.
+              </p>
+            </div>
+
+            {/* Per-size qty controls */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-light-gray uppercase tracking-widest">Size Quantities</p>
+                <span className="text-xs font-mono text-mid-gray">
+                  Total: <span className="text-lime font-bold">{Object.values(editSizeStock).reduce((a, b) => a + Number(b), 0)}</span>
+                </span>
+              </div>
+              {Object.entries(editSizeStock).map(([size, qty]) => (
+                <div key={size} className="flex items-center gap-3 bg-charcoal/50 border border-dark-gray rounded-sm px-3 py-2">
+                  <span className="font-display text-sm text-white w-8">{size}</span>
+                  <div className="flex items-center border border-dark-gray rounded-sm ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => setEditSizeStock(prev => ({ ...prev, [size]: Math.max(0, Number(prev[size]) - 1) }))}
+                      className="h-8 w-8 grid place-items-center text-light-gray hover:text-lime text-xl leading-none"
+                    >−</button>
+                    <input
+                      type="number"
+                      min={0}
+                      value={qty}
+                      onChange={(e) => setEditSizeStock(prev => ({ ...prev, [size]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                      className="w-14 text-center bg-transparent text-white text-sm focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditSizeStock(prev => ({ ...prev, [size]: Number(prev[size]) + 1 }))}
+                      className="h-8 w-8 grid place-items-center text-light-gray hover:text-lime text-xl leading-none"
+                    >+</button>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest w-16 text-right ${
+                    Number(qty) > 0 ? "text-lime" : "text-danger"
+                  }`}>
+                    {Number(qty) > 0 ? "In Stock" : "Sold Out"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Optional note */}
+            <div>
+              <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">Note (optional)</label>
+              <input
+                type="text"
+                value={stockNote}
+                onChange={(e) => setStockNote(e.target.value)}
+                placeholder="e.g. 2 sold offline at Koramangala pop-up"
+                className="w-full h-9 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-xs"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <MSButton
+                type="button"
+                variant="outline"
+                className="w-1/2"
+                onClick={() => setStockEditProduct(null)}
+              >
+                Cancel
+              </MSButton>
+              <MSButton className="w-1/2" onClick={handleSaveStock}>
+                Save Stock
+              </MSButton>
+            </div>
           </div>
         </div>
       )}
