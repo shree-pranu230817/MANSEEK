@@ -5,9 +5,26 @@ import hero1 from "@/assets/hero-1.jpg";
 import hero2 from "@/assets/hero-2.jpg";
 import hero3 from "@/assets/hero-3.jpg";
 import customCta from "@/assets/custom-cta.jpg";
+import catTees from "@/assets/cat-tees.jpg";
+import catHoodies from "@/assets/cat-hoodies.jpg";
+import catPants from "@/assets/cat-pants.jpg";
+import catAcc from "@/assets/cat-acc.jpg";
+import catSweatshirts from "@/assets/cat-sweatshirts.jpg";
 import { MSButton } from "@/components/ms/Button";
 import { ProductCard } from "@/components/ms/ProductCard";
 import { Marquee } from "@/components/ms/Marquee";
+
+const CAT_FALLBACK: Record<string, string> = {
+  tshirts: catTees,
+  tees: catTees,
+  hoodies: catHoodies,
+  joggers: catPants,
+  pants: catPants,
+  accessories: catAcc,
+  sweatshirts: catSweatshirts,
+  custom: catSweatshirts,
+  default: catTees,
+};
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -175,7 +192,7 @@ function Home() {
                 className="group relative block aspect-[3/4] overflow-hidden rounded-md bg-charcoal"
               >
                 <img
-                  src={c.image_url}
+                  src={c.image_url || CAT_FALLBACK[c.slug] || CAT_FALLBACK.default}
                   alt={c.name}
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
