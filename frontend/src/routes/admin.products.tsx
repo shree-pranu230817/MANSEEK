@@ -32,6 +32,74 @@ function AdminProducts() {
   const [sizeStock, setSizeStock] = useState<Record<string, number>>({ S: 0, M: 0, L: 0, XL: 0 });
   const [newSizeLabel, setNewSizeLabel] = useState("");
 
+  // Tags feature state and handlers
+  const PRESET_TAGS = ["New Drop", "Trending", "Best Seller", "Limited Edition", "Oversized", "Heavyweight"];
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTagLabel, setNewTagLabel] = useState("");
+
+  const toggleTag = (tag: string) => {
+    setTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const addCustomTag = (tag: string) => {
+    const clean = tag.trim();
+    if (!clean) return;
+    if (!tags.includes(clean)) {
+      setTags((prev) => [...prev, clean]);
+    }
+    setNewTagLabel("");
+  };
+
+  // Edit tags state and handlers
+  const [tagsEditProduct, setTagsEditProduct] = useState<any | null>(null);
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editNewTagLabel, setEditNewTagLabel] = useState("");
+
+  const openTagsEdit = (product: any) => {
+    setEditTags(product.tags || []);
+    setEditNewTagLabel("");
+    setTagsEditProduct(product);
+  };
+
+  const toggleEditTag = (tag: string) => {
+    setEditTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const addEditCustomTag = (tag: string) => {
+    const clean = tag.trim();
+    if (!clean) return;
+    if (!editTags.includes(clean)) {
+      setEditTags((prev) => [...prev, clean]);
+    }
+    setEditNewTagLabel("");
+  };
+
+  const handleSaveTags = async () => {
+    if (!tagsEditProduct) return;
+    try {
+      toast.loading("Updating tags...", { id: "edit-tags" });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/products/${tagsEditProduct.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ tags: editTags }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update tags");
+      toast.success(`Tags updated for ${tagsEditProduct.name}!`, { id: "edit-tags" });
+      setTagsEditProduct(null);
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message, { id: "edit-tags" });
+    }
+  };
+
   const setSizeQty = (size: string, qty: number) => {
     setSizeStock((prev) => ({ ...prev, [size]: Math.max(0, qty) }));
   };
@@ -200,6 +268,7 @@ function AdminProducts() {
       formData.append("sale_price", lowPrice);
       formData.append("size_stock", JSON.stringify(sizeStock));
       formData.append("colors", JSON.stringify([{ name: colorName, hex: colorHex }]));
+      formData.append("tags", JSON.stringify(tags));
       
       for (const file of imageFiles) {
         formData.append("images", file);
@@ -226,6 +295,7 @@ function AdminProducts() {
       setHighPrice("");
       setLowPrice("");
       setSizeStock({ S: 0, M: 0, L: 0, XL: 0 });
+      setTags([]);
       setColorName("Black");
       setColorHex("#000000");
       setImageFiles([]);
@@ -362,6 +432,12 @@ function AdminProducts() {
                           className="text-xs uppercase tracking-widest text-lime hover:underline font-bold font-display"
                         >
                           Edit Stock
+                        </button>
+                        <button
+                          onClick={() => openTagsEdit(p)}
+                          className="text-xs uppercase tracking-widest text-lime hover:underline font-bold font-display"
+                        >
+                          Edit Tags
                         </button>
                         <button
                           onClick={() => setProductToDelete(p)}
@@ -581,6 +657,86 @@ function AdminProducts() {
                 </div>
               </div>
 
+              {/* Tags Selector */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-light-gray uppercase tracking-widest font-bold">
+                    Tags
+                  </label>
+                  <span className="text-[10px] text-mid-gray">
+                    Select presets or add custom tags
+                  </span>
+                </div>
+
+                {/* Preset tags chips */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {PRESET_TAGS.map((tag) => {
+                    const active = tags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        className={`h-7 px-2.5 text-xs font-bold rounded-sm border transition-all ${
+                          active
+                            ? "bg-lime/20 border-lime text-lime font-bold"
+                            : "bg-charcoal border-dark-gray text-mid-gray hover:border-white hover:text-white"
+                        }`}
+                      >
+                        {active ? "✓ " : "+ "}{tag}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Selected Custom Tags (if any) */}
+                {tags.filter((t) => !PRESET_TAGS.includes(t)).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {tags
+                      .filter((t) => !PRESET_TAGS.includes(t))
+                      .map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 h-7 px-2.5 text-xs font-bold rounded-sm border bg-lime/10 border-lime/30 text-lime"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className="text-mid-gray hover:text-danger ml-1"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+
+                {/* Custom tag input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTagLabel}
+                    onChange={(e) => setNewTagLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addCustomTag(newTagLabel);
+                      }
+                    }}
+                    placeholder="Custom tag (e.g. Winter Wear, Graphic…)"
+                    className="flex-1 h-9 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addCustomTag(newTagLabel)}
+                    className="h-9 px-3 bg-charcoal border border-dark-gray hover:border-lime text-xs text-light-gray hover:text-lime rounded-sm transition-colors font-bold"
+                  >
+                    Add Tag
+                  </button>
+                </div>
+              </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -787,6 +943,118 @@ function AdminProducts() {
               </MSButton>
               <MSButton className="w-1/2" onClick={handleSaveStock}>
                 Save Stock
+              </MSButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT TAGS MODAL */}
+      {tagsEditProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-off-black border border-dark-gray rounded-md p-8 space-y-5 relative shadow-2xl">
+            <button
+              onClick={() => setTagsEditProduct(null)}
+              className="absolute top-4 right-4 text-light-gray hover:text-white font-bold"
+            >
+              ✕
+            </button>
+            <div>
+              <p className="font-display tracking-[0.3em] text-xs text-lime">MANSEEK ADMIN</p>
+              <h2 className="font-display text-xl tracking-tight mt-1 text-white">EDIT TAGS</h2>
+              <p className="text-xs text-mid-gray mt-1 truncate">{tagsEditProduct.name}</p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Preset tags selection */}
+              <div>
+                <p className="text-xs text-light-gray uppercase tracking-widest mb-2 font-bold">Preset Tags</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_TAGS.map((tag) => {
+                    const active = editTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleEditTag(tag)}
+                        className={`h-7 px-2.5 text-xs font-bold rounded-sm border transition-all ${
+                          active
+                            ? "bg-lime/20 border-lime text-lime font-bold"
+                            : "bg-charcoal border-dark-gray text-mid-gray hover:border-white hover:text-white"
+                        }`}
+                      >
+                        {active ? "✓ " : "+ "}{tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected custom tags */}
+              {editTags.filter((t) => !PRESET_TAGS.includes(t)).length > 0 && (
+                <div>
+                  <p className="text-xs text-light-gray uppercase tracking-widest mb-2 font-bold">Custom Tags</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {editTags
+                      .filter((t) => !PRESET_TAGS.includes(t))
+                      .map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 h-7 px-2.5 text-xs font-bold rounded-sm border bg-lime/10 border-lime/30 text-lime"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => toggleEditTag(tag)}
+                            className="text-mid-gray hover:text-danger ml-1"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add custom tag input */}
+              <div className="space-y-1">
+                <label className="text-xs text-light-gray uppercase tracking-widest block font-bold">Add Custom Tag</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editNewTagLabel}
+                    onChange={(e) => setEditNewTagLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addEditCustomTag(editNewTagLabel);
+                      }
+                    }}
+                    placeholder="Custom tag (e.g. Winter Wear, Graphic…)"
+                    className="flex-1 h-9 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addEditCustomTag(editNewTagLabel)}
+                    className="h-9 px-3 bg-charcoal border border-dark-gray hover:border-lime text-xs text-light-gray hover:text-lime rounded-sm transition-colors font-bold"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <MSButton
+                type="button"
+                variant="outline"
+                className="w-1/2"
+                onClick={() => setTagsEditProduct(null)}
+              >
+                Cancel
+              </MSButton>
+              <MSButton className="w-1/2" onClick={handleSaveTags}>
+                Save Tags
               </MSButton>
             </div>
           </div>

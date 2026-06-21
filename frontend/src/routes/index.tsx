@@ -62,14 +62,6 @@ function Home() {
       <section className="relative min-h-dvh -mt-16 pt-16 bg-gradient-hero overflow-hidden noise">
         <div className="mx-auto max-w-[1400px] px-4 lg:px-8 grid lg:grid-cols-2 gap-8 lg:gap-16 items-center min-h-dvh py-20">
           <div>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="font-accent italic text-lime text-lg"
-            >
-              Drop 014 — Concrete Dreams
-            </motion.p>
             <h1 className="mt-4 font-display text-[18vw] sm:text-[14vw] lg:text-[9vw] leading-[0.85] tracking-tight">
               {heroLines.map((line, i) => (
                 <motion.span
@@ -154,7 +146,6 @@ function Home() {
           "FREE SHIPPING ABOVE ₹999",
           "EXCLUSIVE DROPS",
           "BUILT IN INDIA",
-          "DROP 014 LIVE",
         ]}
       />
 

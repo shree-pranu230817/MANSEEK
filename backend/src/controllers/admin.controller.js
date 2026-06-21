@@ -89,6 +89,10 @@ const updateProduct = async (req, res, next) => {
       updateFields.colors = typeof productData.colors === 'string' ? JSON.parse(productData.colors) : productData.colors;
     }
 
+    if (productData.tags !== undefined) {
+      updateFields.tags = typeof productData.tags === 'string' ? JSON.parse(productData.tags) : productData.tags;
+    }
+
     // Handle size_stock update (preferred)
     if (productData.size_stock !== undefined) {
       const size_stock = typeof productData.size_stock === 'string'

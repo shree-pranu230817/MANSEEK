@@ -15,10 +15,29 @@ export function ProductCard({ product }: { product: Product }) {
   const addItem = useCart((s) => s.addItem);
   const toggleWishlist = useWishlist((s) => s.toggleItem);
   const isWishlisted = useWishlist((s) => s.hasItem(product.id));
-  const soldOut = product.badge === "SOLD OUT";
+  const soldOut = product.stock === 0 || product.badge === "SOLD OUT";
+
+  // Dynamic badge from tags, sale price, or stock status
+  const badge = soldOut
+    ? "SOLD OUT"
+    : product.tags?.includes("New Drop") || product.tags?.includes("NEW")
+      ? "NEW"
+      : product.badge
+        ? product.badge
+        : (product.oldPrice && product.oldPrice > product.price) || product.sale_price
+          ? "SALE"
+          : product.tags?.includes("Limited Edition")
+            ? "LIMITED"
+            : product.tags?.includes("Best Seller")
+              ? "BEST SELLER"
+              : null;
 
   const quickAdd = () => {
     const s = size || product.sizes[Math.floor(product.sizes.length / 2)];
+    if (!s) {
+      toast.error("No sizes available");
+      return;
+    }
     addItem({
       productId: product.id,
       slug: product.slug,
@@ -66,16 +85,18 @@ export function ProductCard({ product }: { product: Product }) {
         )}
         <div className="absolute inset-0 bg-gradient-card pointer-events-none" />
 
-        {product.badge && (
+        {badge && (
           <span
             className={cn(
-              "absolute top-3 left-3 px-2.5 py-1 font-display text-xs tracking-widest rounded-sm",
-              product.badge === "NEW" && "bg-lime text-black",
-              product.badge === "SALE" && "bg-white text-black",
-              product.badge === "SOLD OUT" && "bg-danger text-white",
+              "absolute top-3 left-3 px-2.5 py-1 font-display text-[10px] sm:text-xs tracking-widest rounded-sm font-bold uppercase",
+              badge === "NEW" && "bg-lime text-black",
+              badge === "SALE" && "bg-white text-black",
+              badge === "SOLD OUT" && "bg-danger text-white",
+              badge === "LIMITED" && "bg-orange-500 text-white",
+              badge === "BEST SELLER" && "bg-amber-400 text-black",
             )}
           >
-            {product.badge}
+            {badge}
           </span>
         )}
 

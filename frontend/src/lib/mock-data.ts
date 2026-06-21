@@ -15,6 +15,8 @@ export type Product = {
   categoryLabel: string;
   price: number;
   oldPrice?: number;
+  base_price?: number;
+  sale_price?: number | null;
   images: string[];
   sizes: string[];
   colors: { name: string; hex: string }[];
@@ -23,6 +25,7 @@ export type Product = {
   rating: number;
   reviews: number;
   stock: number;
+  tags?: string[];
 };
 
 export const categories = [
