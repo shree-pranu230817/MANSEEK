@@ -29,9 +29,25 @@ const createProduct = async (req, res, next) => {
     }
 
     // parse JSON fields if coming from multipart
-    const sizes = req.body.sizes ? JSON.parse(req.body.sizes) : [];
     const colors = req.body.colors ? JSON.parse(req.body.colors) : [];
     const tags = req.body.tags ? JSON.parse(req.body.tags) : [];
+
+    // size_stock: { S: 10, M: 5, L: 0, XL: 3 }
+    let size_stock = {};
+    if (req.body.size_stock) {
+      size_stock = JSON.parse(req.body.size_stock);
+    } else if (req.body.sizes) {
+      // legacy fallback: plain sizes array with a shared stock
+      const sizesArr = JSON.parse(req.body.sizes);
+      const qty = parseInt(productData.stock || 0);
+      sizesArr.forEach(s => { size_stock[s] = qty; });
+    }
+
+    // Derive sizes (keys with qty > 0) and total stock
+    const sizes = Object.entries(size_stock)
+      .filter(([, qty]) => qty > 0)
+      .map(([s]) => s);
+    const stock = Object.values(size_stock).reduce((a, b) => a + Number(b), 0);
 
     const { data, error } = await supabase.from('products').insert([{
       name: productData.name,
@@ -39,12 +55,13 @@ const createProduct = async (req, res, next) => {
       description: productData.description,
       category_id: productData.category_id,
       sizes,
+      size_stock,
       colors,
       tags,
       images: imageUrls.length > 0 ? imageUrls : (req.body.images ? JSON.parse(req.body.images) : []),
       base_price: parseFloat(productData.base_price),
       sale_price: productData.sale_price ? parseFloat(productData.sale_price) : null,
-      stock: parseInt(productData.stock || 0),
+      stock,
       is_featured: productData.is_featured === 'true'
     }]).select().single();
 
@@ -66,14 +83,35 @@ const updateProduct = async (req, res, next) => {
     if (productData.description !== undefined) updateFields.description = productData.description;
     if (productData.category_id !== undefined) updateFields.category_id = productData.category_id;
     if (productData.base_price !== undefined) updateFields.base_price = parseFloat(productData.base_price);
-    if (productData.stock !== undefined) updateFields.stock = parseInt(productData.stock);
     if (productData.is_active !== undefined) updateFields.is_active = productData.is_active === 'true' || productData.is_active === true;
 
-    if (productData.sizes !== undefined) {
-      updateFields.sizes = typeof productData.sizes === 'string' ? JSON.parse(productData.sizes) : productData.sizes;
-    }
     if (productData.colors !== undefined) {
       updateFields.colors = typeof productData.colors === 'string' ? JSON.parse(productData.colors) : productData.colors;
+    }
+
+    // Handle size_stock update (preferred)
+    if (productData.size_stock !== undefined) {
+      const size_stock = typeof productData.size_stock === 'string'
+        ? JSON.parse(productData.size_stock)
+        : productData.size_stock;
+      updateFields.size_stock = size_stock;
+      updateFields.sizes = Object.entries(size_stock).filter(([, qty]) => Number(qty) > 0).map(([s]) => s);
+      updateFields.stock = Object.values(size_stock).reduce((a, b) => a + Number(b), 0);
+    } else if (productData.sizes !== undefined) {
+      // Legacy: admin toggled a size on/off — fetch current size_stock and zero/restore that size
+      const newSizes = typeof productData.sizes === 'string' ? JSON.parse(productData.sizes) : productData.sizes;
+      // fetch current size_stock
+      const { data: current } = await supabase.from('products').select('size_stock').eq('id', id).single();
+      let size_stock = current?.size_stock || {};
+      // any size not in newSizes gets 0, any new size that had 0 gets 1
+      const allSizes = new Set([...Object.keys(size_stock), ...newSizes]);
+      allSizes.forEach(s => {
+        if (!newSizes.includes(s)) size_stock[s] = 0;
+        else if (!size_stock[s]) size_stock[s] = 1;
+      });
+      updateFields.size_stock = size_stock;
+      updateFields.sizes = newSizes;
+      updateFields.stock = Object.values(size_stock).reduce((a, b) => a + Number(b), 0);
     }
 
     const imageUrls = [];

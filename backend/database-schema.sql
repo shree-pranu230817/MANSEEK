@@ -61,12 +61,13 @@ CREATE TABLE products (
   base_price    NUMERIC(10,2) NOT NULL,
   sale_price    NUMERIC(10,2),             -- NULL if not on sale
   images        TEXT[] DEFAULT '{}',       -- array of image URLs (Supabase Storage)
-  sizes         TEXT[] DEFAULT '{}',       -- ['XS','S','M','L','XL','XXL']
+  sizes         TEXT[] DEFAULT '{}',       -- derived: keys of size_stock where qty > 0
+  size_stock    JSONB DEFAULT '{}',        -- { "S": 10, "M": 5, "L": 0, "XL": 3 }
   colors        JSONB DEFAULT '[]',        -- [{ name: "Black", hex: "#000" }]
   tags          TEXT[] DEFAULT '{}',
   is_featured   BOOLEAN DEFAULT FALSE,
   is_active     BOOLEAN DEFAULT TRUE,
-  stock         INT DEFAULT 0,
+  stock         INT DEFAULT 0,             -- derived: sum of all size_stock values
   rating        NUMERIC(3,2) DEFAULT 0,
   review_count  INT DEFAULT 0,
   created_at    TIMESTAMPTZ DEFAULT NOW(),
@@ -76,6 +77,16 @@ CREATE TABLE products (
 CREATE INDEX idx_products_slug ON products(slug);
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_products_featured ON products(is_featured) WHERE is_featured = TRUE;
+
+-- ⚡ MIGRATION: Run this in Supabase SQL Editor if the table already exists
+-- ALTER TABLE products ADD COLUMN IF NOT EXISTS size_stock JSONB DEFAULT '{}';
+-- UPDATE products
+--   SET size_stock = (
+--     SELECT jsonb_object_agg(s, GREATEST(stock / NULLIF(array_length(sizes,1),0), 1))
+--     FROM unnest(sizes) s
+--   )
+-- WHERE array_length(sizes,1) > 0;
+
 
 -- Table: product_variants
 CREATE TABLE product_variants (

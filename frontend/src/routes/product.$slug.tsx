@@ -182,22 +182,36 @@ function ProductDetail() {
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {product.sizes.map((s: string) => (
-                <button
-                  key={s}
-                  onClick={() => setSize(s)}
-                  className={cn(
-                    "h-11 min-w-11 px-3 rounded-sm border text-sm font-medium transition",
-                    size === s
-                      ? "bg-lime text-black border-lime"
-                      : "border-dark-gray text-light-gray hover:border-white hover:text-white",
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
+              {product.sizes.map((s: string) => {
+                const sizeQty: number = product.size_stock?.[s] ?? 1;
+                const isOutOfStock = sizeQty === 0;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => !isOutOfStock && setSize(s)}
+                    disabled={isOutOfStock}
+                    title={isOutOfStock ? `${s} — Sold Out` : `${s} — ${sizeQty} left`}
+                    className={cn(
+                      "relative h-11 min-w-11 px-3 rounded-sm border text-sm font-medium transition group",
+                      isOutOfStock
+                        ? "border-dark-gray text-mid-gray opacity-40 cursor-not-allowed line-through"
+                        : size === s
+                        ? "bg-lime text-black border-lime"
+                        : "border-dark-gray text-light-gray hover:border-white hover:text-white",
+                    )}
+                  >
+                    {s}
+                    {!isOutOfStock && sizeQty <= 5 && (
+                      <span className="absolute -top-1.5 -right-1.5 text-[8px] font-bold bg-danger text-white rounded-full h-3.5 w-3.5 flex items-center justify-center">
+                        {sizeQty}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
 
           {/* Color */}
           <div className="mt-6">

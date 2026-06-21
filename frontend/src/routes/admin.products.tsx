@@ -22,9 +22,34 @@ function AdminProducts() {
   const [categoryId, setCategoryId] = useState("");
   const [highPrice, setHighPrice] = useState("");
   const [lowPrice, setLowPrice] = useState("");
-  const [stock, setStock] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  
+
+  // Per-size stock: { S: 10, M: 5, L: 0, XL: 3 }
+  const PRESET_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
+  const [sizeStock, setSizeStock] = useState<Record<string, number>>({ S: 0, M: 0, L: 0, XL: 0 });
+  const [newSizeLabel, setNewSizeLabel] = useState("");
+
+  const setSizeQty = (size: string, qty: number) => {
+    setSizeStock((prev) => ({ ...prev, [size]: Math.max(0, qty) }));
+  };
+
+  const addSize = (size: string) => {
+    const label = size.trim().toUpperCase();
+    if (!label) return;
+    setSizeStock((prev) => ({ ...prev, [label]: prev[label] ?? 0 }));
+    setNewSizeLabel("");
+  };
+
+  const removeSize = (size: string) => {
+    setSizeStock((prev) => {
+      const copy = { ...prev };
+      delete copy[size];
+      return copy;
+    });
+  };
+
+  const totalSizeStock = Object.values(sizeStock).reduce((a, b) => a + b, 0);
+
   // Custom Color states
   const [colorName, setColorName] = useState("Black");
   const [colorHex, setColorHex] = useState("#000000");
@@ -123,6 +148,10 @@ function AdminProducts() {
       toast.error("Please add at least one product image");
       return;
     }
+    if (Object.keys(sizeStock).length === 0) {
+      toast.error("Add at least one size");
+      return;
+    }
 
     try {
       toast.loading(`Creating product and uploading ${imageFiles.length} image(s)...`, { id: "add-product" });
@@ -134,8 +163,7 @@ function AdminProducts() {
       formData.append("category_id", categoryId);
       formData.append("base_price", highPrice);
       formData.append("sale_price", lowPrice);
-      formData.append("stock", stock);
-      formData.append("sizes", JSON.stringify(["S", "M", "L", "XL"]));
+      formData.append("size_stock", JSON.stringify(sizeStock));
       formData.append("colors", JSON.stringify([{ name: colorName, hex: colorHex }]));
       
       for (const file of imageFiles) {
@@ -162,7 +190,7 @@ function AdminProducts() {
       setDescription("");
       setHighPrice("");
       setLowPrice("");
-      setStock("");
+      setSizeStock({ S: 0, M: 0, L: 0, XL: 0 });
       setColorName("Black");
       setColorHex("#000000");
       setImageFiles([]);
@@ -252,24 +280,33 @@ function AdminProducts() {
                     </td>
                     <td>{p.stock}</td>
                     <td>
-                      <div className="flex gap-1.5">
-                        {["S", "M", "L", "XL"].map((size) => {
-                          const hasSize = p.sizes?.includes(size);
-                          return (
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(p.size_stock || {}).length > 0
+                          ? Object.entries(p.size_stock as Record<string,number>).map(([size, qty]) => (
                             <button
                               key={size}
                               onClick={() => toggleSize(p, size)}
-                              title={hasSize ? `Mark ${size} Completed (Sold Out)` : `Mark ${size} Available (In Stock)`}
-                              className={`h-6 w-6 text-[10px] font-bold rounded-sm border transition-all ${
-                                hasSize
+                              title={`${size}: ${qty} units — click to toggle`}
+                              className={`flex flex-col items-center px-1.5 py-0.5 rounded-sm border text-[9px] font-bold transition-all ${
+                                Number(qty) > 0
                                   ? "bg-lime/20 border-lime text-lime hover:bg-lime/30"
-                                  : "bg-charcoal/50 border-dark-gray text-mid-gray line-through opacity-40 hover:opacity-80"
+                                  : "bg-charcoal/50 border-dark-gray text-mid-gray opacity-40 hover:opacity-80"
                               }`}
+                            >
+                              <span>{size}</span>
+                              <span className="font-mono">{qty}</span>
+                            </button>
+                          ))
+                          : (p.sizes || []).map((size: string) => (
+                            <button
+                              key={size}
+                              onClick={() => toggleSize(p, size)}
+                              className="h-6 w-6 text-[10px] font-bold rounded-sm border bg-lime/20 border-lime text-lime hover:bg-lime/30 transition-all"
                             >
                               {size}
                             </button>
-                          );
-                        })}
+                          ))
+                        }
                       </div>
                     </td>
                     <td>
@@ -395,19 +432,6 @@ function AdminProducts() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
-                    Stock
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    placeholder="50"
-                    className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
                     Category
                   </label>
                   <select
@@ -423,6 +447,97 @@ function AdminProducts() {
                   </select>
                 </div>
               </div>
+
+              {/* ── Per-size stock builder ── */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-light-gray uppercase tracking-widest">
+                    Sizes &amp; Stock
+                  </label>
+                  <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-charcoal border border-dark-gray text-mid-gray">
+                    Total: <span className="text-lime">{totalSizeStock}</span> units
+                  </span>
+                </div>
+
+                {/* Preset size chips to quickly add */}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {PRESET_SIZES.map((s) => {
+                    const active = s in sizeStock;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => active ? removeSize(s) : addSize(s)}
+                        className={`h-7 px-2.5 text-xs font-bold rounded-sm border transition-all ${
+                          active
+                            ? "bg-lime/20 border-lime text-lime"
+                            : "bg-charcoal border-dark-gray text-mid-gray hover:border-white hover:text-white"
+                        }`}
+                      >
+                        {active ? "✓ " : "+ "}{s}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Size rows with qty controls */}
+                {Object.keys(sizeStock).length > 0 ? (
+                  <div className="space-y-2 mb-3">
+                    {Object.entries(sizeStock).map(([size, qty]) => (
+                      <div key={size} className="flex items-center gap-2 bg-charcoal/50 border border-dark-gray rounded-sm px-3 py-2">
+                        <span className="font-display text-sm text-white w-8">{size}</span>
+                        <div className="flex items-center border border-dark-gray rounded-sm ml-auto">
+                          <button
+                            type="button"
+                            onClick={() => setSizeQty(size, qty - 1)}
+                            className="h-7 w-7 grid place-items-center text-light-gray hover:text-lime text-lg leading-none"
+                          >−</button>
+                          <input
+                            type="number"
+                            min={0}
+                            value={qty}
+                            onChange={(e) => setSizeQty(size, parseInt(e.target.value) || 0)}
+                            className="w-14 text-center bg-transparent text-white text-sm focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSizeQty(size, qty + 1)}
+                            className="h-7 w-7 grid place-items-center text-light-gray hover:text-lime text-lg leading-none"
+                          >+</button>
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ml-2 w-16 text-right ${qty > 0 ? "text-lime" : "text-danger"}`}>
+                          {qty > 0 ? "In Stock" : "Sold Out"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeSize(size)}
+                          className="ml-1 text-mid-gray hover:text-danger text-xs"
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-mid-gray mb-3">Select at least one size above.</p>
+                )}
+
+                {/* Add custom size */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSizeLabel}
+                    onChange={(e) => setNewSizeLabel(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSize(newSizeLabel); }}}
+                    placeholder="Custom size (e.g. 2XL, 3XL…)"
+                    className="flex-1 h-9 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addSize(newSizeLabel)}
+                    className="h-9 px-3 bg-charcoal border border-dark-gray hover:border-lime text-xs text-light-gray hover:text-lime rounded-sm transition-colors"
+                  >Add</button>
+                </div>
+              </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
