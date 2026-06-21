@@ -1,5 +1,23 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Twitter, Youtube } from "lucide-react";
+import { Instagram, Facebook, Youtube } from "lucide-react";
+
+const SOCIALS = [
+  {
+    Icon: Instagram,
+    href: "https://www.instagram.com/manseek_dtf?igsh=eGxrcjNzaGl2Y2pt",
+    label: "Instagram",
+  },
+  {
+    Icon: Youtube,
+    href: "https://youtube.com/@manseek1?si=fJfZGv-yVNhorQWR",
+    label: "YouTube",
+  },
+  {
+    Icon: Facebook,
+    href: "https://www.facebook.com/share/1JqCgDbvLB/",
+    label: "Facebook",
+  },
+];
 
 export function Footer() {
   return (
@@ -11,10 +29,13 @@ export function Footer() {
             Street luxury, built for the bold. Drops every Friday.
           </p>
           <div className="mt-6 flex gap-3">
-            {[Instagram, Twitter, Youtube].map((Icon, i) => (
+            {SOCIALS.map(({ Icon, href, label }) => (
               <a
-                key={i}
-                href="#"
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`ManSeek on ${label}`}
                 className="grid h-10 w-10 place-items-center rounded-full bg-charcoal text-white hover:bg-lime hover:text-black transition"
               >
                 <Icon className="h-4 w-4" />
