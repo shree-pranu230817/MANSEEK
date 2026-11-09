@@ -178,7 +178,7 @@ function Shop() {
               All
             </button>
             {categories
-              .filter((c: any) => !["joggers", "accessories"].includes(c.slug))
+              .filter((c: any) => c.slug !== "joggers")
               .map((c: any) => (
               <button
                 key={c.slug}

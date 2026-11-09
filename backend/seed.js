@@ -14,7 +14,10 @@ async function seed() {
   const { data: cats, error: catErr } = await supabase.from('categories').insert([
     { name: 'Tees', slug: 'tees', sort_order: 1, image_url: '/images/cat-tees.jpg' },
     { name: 'Hoodies', slug: 'hoodies', sort_order: 2, image_url: '/images/cat-hoodies.jpg' },
-    { name: 'Sweatshirts', slug: 'sweatshirts', sort_order: 3, image_url: '/images/cat-sweatshirts.jpg' }
+    { name: 'Sweatshirts', slug: 'sweatshirts', sort_order: 3, image_url: '/images/cat-sweatshirts.jpg' },
+    { name: 'Pants', slug: 'pants', sort_order: 4, image_url: '/images/cat-pants.jpg' },
+    { name: 'Shirts', slug: 'shirts', sort_order: 5, image_url: '/images/cat-tees.jpg' },
+    { name: 'Accessories', slug: 'accessories', sort_order: 6, image_url: '/images/cat-acc.jpg' }
   ]).select();
 
   if (catErr) {

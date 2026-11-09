@@ -228,6 +228,29 @@ function AdminProducts() {
     }
   };
 
+  const handleCategoryChange = async (product: any, newCatId: string) => {
+    if (!newCatId || newCatId === product.category_id) return;
+    try {
+      toast.loading(`Updating category for ${product.name}...`, { id: "update-cat" });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/products/${product.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ category_id: newCatId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update category");
+
+      const targetCat = categories.find((c) => c.id === newCatId);
+      toast.success(`${product.name} category updated to ${targetCat?.name || "new category"}!`, { id: "update-cat" });
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message, { id: "update-cat" });
+    }
+  };
+
   const handleImageFilesChange = (incoming: FileList | null) => {
     if (!incoming) return;
     const arr = Array.from(incoming);
@@ -374,7 +397,19 @@ function AdminProducts() {
                       />
                       <span>{p.name}</span>
                     </td>
-                    <td className="capitalize">{cat?.name || "Streetwear"}</td>
+                    <td className="capitalize">
+                      <select
+                        value={p.category_id || ""}
+                        onChange={(e) => handleCategoryChange(p, e.target.value)}
+                        className="bg-charcoal border border-dark-gray rounded-sm text-xs text-white px-2 py-1 focus:border-lime focus:outline-none capitalize cursor-pointer hover:border-lime transition-all"
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td>
                       <div className="flex flex-col">
                         <span className="text-lime font-bold">{formatINR(parseFloat(p.sale_price || p.base_price))}</span>

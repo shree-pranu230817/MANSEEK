@@ -44,12 +44,13 @@ CREATE TABLE categories (
 );
 
 -- Seed Categories
-INSERT INTO categories (name, slug, sort_order) VALUES
-  ('T-Shirts', 'tshirts', 1),
-  ('Hoodies', 'hoodies', 2),
-  ('Joggers', 'joggers', 3),
-  ('Accessories', 'accessories', 4),
-  ('Custom', 'custom', 5);
+INSERT INTO categories (name, slug, sort_order, image_url) VALUES
+  ('Tees', 'tees', 1, '/images/cat-tees.jpg'),
+  ('Hoodies', 'hoodies', 2, '/images/cat-hoodies.jpg'),
+  ('Sweatshirts', 'sweatshirts', 3, '/images/cat-sweatshirts.jpg'),
+  ('Pants', 'pants', 4, '/images/cat-pants.jpg'),
+  ('Shirts', 'shirts', 5, '/images/cat-tees.jpg'),
+  ('Accessories', 'accessories', 6, '/images/cat-acc.jpg');
 
 -- Table: products
 CREATE TABLE products (
