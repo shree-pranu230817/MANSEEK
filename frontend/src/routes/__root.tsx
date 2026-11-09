@@ -7,6 +7,7 @@ import {
   useLocation,
   HeadContent,
   Scripts,
+  ErrorComponentProps,
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
@@ -36,13 +37,14 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  const errorMessage = error instanceof Error ? error.message : String(error || "An error occurred");
   return (
     <div className="min-h-dvh grid place-items-center px-4 bg-black">
       <div className="max-w-md text-center">
         <h1 className="font-display text-4xl tracking-widest">SOMETHING BROKE</h1>
-        <p className="mt-2 text-sm text-light-gray">{error.message}</p>
+        <p className="mt-2 text-sm text-light-gray">{errorMessage}</p>
         <button
           onClick={() => {
             router.invalidate();
