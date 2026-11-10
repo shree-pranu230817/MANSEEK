@@ -107,7 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);
 -- 7. STOCK MOVEMENTS & INVENTORY HISTORY TABLE
 CREATE TABLE IF NOT EXISTS stock_movements (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  product_id  UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  product_id  UUID REFERENCES products(id) ON DELETE SET NULL,
   variant_id  UUID REFERENCES product_variants(id) ON DELETE SET NULL,
   delta       INT NOT NULL,
   stock_after INT NOT NULL,
@@ -117,6 +117,29 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   created_by  UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure historical stock movements survive product deletion even if table already existed
+DO $$
+DECLARE
+  fk_name TEXT;
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stock_movements') THEN
+    ALTER TABLE stock_movements ALTER COLUMN product_id DROP NOT NULL;
+    
+    SELECT tc.constraint_name INTO fk_name
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name
+    WHERE tc.table_name = 'stock_movements'
+      AND kcu.column_name = 'product_id'
+      AND tc.constraint_type = 'FOREIGN KEY';
+
+    IF fk_name IS NOT NULL THEN
+      EXECUTE 'ALTER TABLE stock_movements DROP CONSTRAINT ' || quote_ident(fk_name);
+      ALTER TABLE stock_movements ADD CONSTRAINT stock_movements_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+    END IF;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_stock_movements_product ON stock_movements(product_id, created_at DESC);
 
@@ -271,7 +294,7 @@ BEGIN
   END IF;
 END $$;
 
--- 13. ENABLE ROW LEVEL SECURITY AND PERMISSIVE POLICIES
+-- 13. ENABLE ROW LEVEL SECURITY AND PERMISSIVE POLICIES (Safely Repeatable)
 ALTER TABLE size_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sizes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attributes ENABLE ROW LEVEL SECURITY;
@@ -279,10 +302,19 @@ ALTER TABLE attribute_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_returns ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "size_groups_public_read" ON size_groups;
 CREATE POLICY "size_groups_public_read" ON size_groups FOR SELECT TO anon, authenticated USING (TRUE);
+
+DROP POLICY IF EXISTS "sizes_public_read" ON sizes;
 CREATE POLICY "sizes_public_read" ON sizes FOR SELECT TO anon, authenticated USING (TRUE);
+
+DROP POLICY IF EXISTS "attributes_public_read" ON attributes;
 CREATE POLICY "attributes_public_read" ON attributes FOR SELECT TO anon, authenticated USING (TRUE);
+
+DROP POLICY IF EXISTS "attribute_options_public_read" ON attribute_options;
 CREATE POLICY "attribute_options_public_read" ON attribute_options FOR SELECT TO anon, authenticated USING (TRUE);
+
+DROP POLICY IF EXISTS "store_settings_public_read" ON store_settings;
 CREATE POLICY "store_settings_public_read" ON store_settings FOR SELECT TO anon, authenticated USING (TRUE);
 
 -- Completed safely.
