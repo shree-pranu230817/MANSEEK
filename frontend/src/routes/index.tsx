@@ -174,7 +174,7 @@ function Home() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {categories
-            .filter((c: any) => !HIDDEN_CATS.has(c.slug))
+            .filter((c: any) => c.is_visible !== false && (c.is_featured_home !== undefined ? c.is_featured_home : !HIDDEN_CATS.has(c.slug)))
             .map((c: any, i: number) => (
             <motion.div
               key={c.slug}

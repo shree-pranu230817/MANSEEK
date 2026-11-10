@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, Minus, Plus, ChevronDown, Truck, Ruler, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { formatINR } from "@/lib/format";
 import { MSButton } from "@/components/ms/Button";
 import { ProductCard } from "@/components/ms/ProductCard";
 import { useCart } from "@/store/cart";
+import { useAuth } from "@/store/auth";
 import { useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
 
@@ -60,27 +61,82 @@ function ProductDetail() {
   const router = useRouter();
   const [activeImg, setActiveImg] = useState(0);
   const [size, setSize] = useState<string | null>(null);
-  const [color, setColor] = useState(product.colors[0].name);
+  const [color, setColor] = useState(Array.isArray(product.colors) && product.colors.length > 0 ? product.colors[0].name : "Standard");
   const [qty, setQty] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const addItem = useCart((s) => s.addItem);
   const openCart = useUI((s) => s.openCart);
   const soldOut = product.stock === 0 || product.badge === "SOLD OUT";
 
+  // Reviews state & handler
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const token = useAuth((s) => s.token);
+
+  useEffect(() => {
+    if (product.id) {
+      fetch(`${import.meta.env.VITE_API_URL}/reviews?productId=${product.id}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) setReviewsList(data);
+        })
+        .catch(() => {});
+    }
+  }, [product.id]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) {
+      toast.error("Please log in to submit a review");
+      return;
+    }
+    try {
+      toast.loading("Submitting review...", { id: "rev" });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/reviews`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          rating: reviewRating,
+          title: reviewTitle,
+          body: reviewBody,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Failed");
+      toast.success("Review submitted! Thank you.", { id: "rev" });
+      setShowReviewForm(false);
+      setReviewTitle("");
+      setReviewBody("");
+      const updated = await (await fetch(`${import.meta.env.VITE_API_URL}/reviews?productId=${product.id}`)).json();
+      if (Array.isArray(updated)) setReviewsList(updated);
+    } catch (err: any) {
+      toast.error(err.message, { id: "rev" });
+    }
+  };
+
   const onAdd = (buyNow = false) => {
     if (soldOut) return;
-    if (!size) {
+    const hasSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
+    if (hasSizes && !size) {
       toast.error("Pick a size");
       return;
     }
+    const chosenSize = size || (hasSizes ? product.sizes[0] : "ONESIZE");
+    const chosenColor = color || (Array.isArray(product.colors) && product.colors.length > 0 ? product.colors[0].name : "Standard");
     addItem({
       productId: product.id,
       slug: product.slug,
       name: product.name,
-      image: product.images[0],
+      image: product.images?.[0] || "",
       price: product.price,
-      size,
-      color,
+      size: chosenSize,
+      color: chosenColor,
       quantity: qty,
     });
     if (buyNow) {
@@ -170,69 +226,84 @@ function ProductDetail() {
             )}
           </div>
 
-          {/* Size */}
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-display tracking-widest text-sm">SIZE</p>
-              <button
-                onClick={() => setShowSizeGuide(true)}
-                className="text-xs text-light-gray hover:text-lime inline-flex items-center gap-1 transition-colors"
-              >
-                <Ruler className="h-3 w-3" /> Size guide
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {product.sizes.map((s: string) => {
-                const sizeQty: number = product.size_stock?.[s] ?? 1;
-                const isOutOfStock = sizeQty === 0;
-                return (
-                  <button
-                    key={s}
-                    onClick={() => !isOutOfStock && setSize(s)}
-                    disabled={isOutOfStock}
-                    title={isOutOfStock ? `${s} — Sold Out` : `${s} — ${sizeQty} left`}
-                    className={cn(
-                      "relative h-11 min-w-11 px-3 rounded-sm border text-sm font-medium transition group",
-                      isOutOfStock
-                        ? "border-dark-gray text-mid-gray opacity-40 cursor-not-allowed line-through"
-                        : size === s
-                        ? "bg-lime text-black border-lime"
-                        : "border-dark-gray text-light-gray hover:border-white hover:text-white",
-                    )}
-                  >
-                    {s}
-                    {!isOutOfStock && sizeQty <= 5 && (
-                      <span className="absolute -top-1.5 -right-1.5 text-[8px] font-bold bg-danger text-white rounded-full h-3.5 w-3.5 flex items-center justify-center">
-                        {sizeQty}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-
-          {/* Color */}
-          <div className="mt-6">
-            <p className="font-display tracking-widest text-sm mb-3">
-              COLOR · <span className="text-light-gray font-sans normal-case">{color}</span>
-            </p>
-            <div className="flex gap-2">
-              {product.colors.map((c: { name: string; hex: string }) => (
+          {/* Size (Optional) */}
+          {Array.isArray(product.sizes) && product.sizes.length > 0 && (
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-display tracking-widest text-sm">SIZE</p>
                 <button
-                  key={c.name}
-                  onClick={() => setColor(c.name)}
-                  className={cn(
-                    "h-10 w-10 rounded-full border-2 transition",
-                    color === c.name ? "border-lime" : "border-dark-gray hover:border-white",
-                  )}
-                  style={{ background: c.hex }}
-                  aria-label={c.name}
-                />
+                  onClick={() => setShowSizeGuide(true)}
+                  className="text-xs text-light-gray hover:text-lime inline-flex items-center gap-1 transition-colors"
+                >
+                  <Ruler className="h-3 w-3" /> Size guide
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map((s: string) => {
+                  const sizeQty: number = product.size_stock?.[s] ?? 1;
+                  const isOutOfStock = sizeQty === 0;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => !isOutOfStock && setSize(s)}
+                      disabled={isOutOfStock}
+                      title={isOutOfStock ? `${s} — Sold Out` : `${s} — ${sizeQty} left`}
+                      className={cn(
+                        "relative h-11 min-w-11 px-3 rounded-sm border text-sm font-medium transition group",
+                        isOutOfStock
+                          ? "border-dark-gray text-mid-gray opacity-40 cursor-not-allowed line-through"
+                          : size === s
+                          ? "bg-lime text-black border-lime"
+                          : "border-dark-gray text-light-gray hover:border-white hover:text-white",
+                      )}
+                    >
+                      {s}
+                      {!isOutOfStock && sizeQty <= 5 && (
+                        <span className="absolute -top-1.5 -right-1.5 text-[8px] font-bold bg-danger text-white rounded-full h-3.5 w-3.5 flex items-center justify-center">
+                          {sizeQty}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Color (Optional) */}
+          {Array.isArray(product.colors) && product.colors.length > 0 && (
+            <div className="mt-6">
+              <p className="font-display tracking-widest text-sm mb-3">
+                COLOR · <span className="text-light-gray font-sans normal-case">{color}</span>
+              </p>
+              <div className="flex gap-2">
+                {product.colors.map((c: { name: string; hex: string }) => (
+                  <button
+                    key={c.name}
+                    onClick={() => setColor(c.name)}
+                    className={cn(
+                      "h-10 w-10 rounded-full border-2 transition",
+                      color === c.name ? "border-lime" : "border-dark-gray hover:border-white",
+                    )}
+                    style={{ background: c.hex }}
+                    aria-label={c.name}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic Attributes / Specs */}
+          {product.attributes_data && Object.keys(product.attributes_data).length > 0 && (
+            <div className="mt-6 grid grid-cols-2 gap-2 text-xs border-y border-dark-gray/40 py-4">
+              {Object.entries(product.attributes_data).map(([key, val]: [string, any]) => (
+                <div key={key} className="flex justify-between py-1 border-b border-dark-gray/20">
+                  <span className="text-light-gray uppercase font-display tracking-wider">{key}:</span>
+                  <span className="text-white font-medium capitalize">{String(val)}</span>
+                </div>
               ))}
             </div>
-          </div>
+          )}
 
           {/* Qty */}
           <div className="mt-6 flex items-center gap-4">
@@ -278,6 +349,101 @@ function ProductDetail() {
 
       {/* Size Guide Modal */}
       <SizeGuideModal open={showSizeGuide} onClose={() => setShowSizeGuide(false)} />
+
+      {/* Customer Reviews Section */}
+      <section className="mt-20 pt-12 border-t border-dark-gray/40">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h2 className="font-display text-3xl lg:text-4xl tracking-tight text-white">
+              CUSTOMER REVIEWS
+            </h2>
+            <div className="mt-2 flex items-center gap-3">
+              <div className="flex text-lime">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className={cn("h-4 w-4", i < Math.round(product.rating || 5) ? "fill-current" : "")} />
+                ))}
+              </div>
+              <span className="text-sm font-semibold text-white">{product.rating || 5}.0</span>
+              <span className="text-xs text-light-gray">({reviewsList.length || product.reviews || 0} reviews)</span>
+            </div>
+          </div>
+          <MSButton variant="outline" size="sm" onClick={() => setShowReviewForm(!showReviewForm)}>
+            {showReviewForm ? "Cancel" : "Write a Review"}
+          </MSButton>
+        </div>
+
+        {showReviewForm && (
+          <form onSubmit={handleSubmitReview} className="mb-10 bg-off-black border border-dark-gray rounded-md p-6 max-w-xl space-y-4">
+            <h3 className="font-display text-lg text-white">SHARE YOUR EXPERIENCE</h3>
+            <div>
+              <label className="text-xs uppercase text-light-gray block mb-1">Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((r) => (
+                  <button
+                    type="button"
+                    key={r}
+                    onClick={() => setReviewRating(r)}
+                    className={cn("p-1", r <= reviewRating ? "text-lime" : "text-mid-gray")}
+                  >
+                    <Star className="h-6 w-6 fill-current" />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs uppercase text-light-gray block mb-1">Review Title</label>
+              <input
+                type="text"
+                required
+                value={reviewTitle}
+                onChange={(e) => setReviewTitle(e.target.value)}
+                placeholder="e.g. Heavyweight quality, crazy fit!"
+                className="w-full bg-charcoal border border-dark-gray rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-lime"
+              />
+            </div>
+            <div>
+              <label className="text-xs uppercase text-light-gray block mb-1">Review Body</label>
+              <textarea
+                required
+                rows={3}
+                value={reviewBody}
+                onChange={(e) => setReviewBody(e.target.value)}
+                placeholder="How was the GSM, sizing, and comfort on street?"
+                className="w-full bg-charcoal border border-dark-gray rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-lime"
+              />
+            </div>
+            <MSButton type="submit" size="sm">Submit Review</MSButton>
+          </form>
+        )}
+
+        {reviewsList.length === 0 ? (
+          <p className="text-xs text-mid-gray py-4">No reviews yet. Be the first to review this drop!</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
+            {reviewsList.map((rev) => (
+              <div key={rev.id} className="bg-off-black border border-dark-gray/60 rounded-md p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex text-lime">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={cn("h-3.5 w-3.5", i < rev.rating ? "fill-current" : "text-dark-gray")} />
+                    ))}
+                  </div>
+                  {rev.is_verified && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-lime/10 text-lime border border-lime/30">
+                      VERIFIED BUYER
+                    </span>
+                  )}
+                </div>
+                <p className="font-semibold text-white text-sm">{rev.title || "Customer Review"}</p>
+                <p className="text-xs text-light-gray leading-relaxed">{rev.body}</p>
+                <p className="text-[10px] text-mid-gray pt-2 border-t border-dark-gray/30">
+                  {rev.users?.name || "Customer"} · {new Date(rev.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Related */}
       {related.length > 0 && (

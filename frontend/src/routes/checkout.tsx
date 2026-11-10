@@ -32,6 +32,7 @@ const steps = ["Address", "Review", "Payment"] as const;
 
 function Checkout() {
   const [step, setStep] = useState(0);
+  const [couponCode, setCouponCode] = useState("");
   const items = useCart((s) => s.items);
   const subtotal = useCart((s) => s.subtotal());
   const clear = useCart((s) => s.clearCart);
@@ -81,9 +82,9 @@ function Checkout() {
       toast.loading("Connecting to Razorpay...", { id: "pay" });
       
       const payload = {
-        items: items.map(i => ({ productId: i.productId, quantity: i.quantity, size: i.size, color: i.color })),
+        items: items.map(i => ({ productId: i.productId, quantity: i.quantity, size: i.size, color: i.color, sku: i.sku, variantId: i.variantId })),
         shippingAddress: form.getValues(),
-        couponCode: null
+        couponCode: couponCode.trim() ? couponCode.trim().toUpperCase() : null
       };
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/orders/create-razorpay-order`, {
@@ -119,7 +120,8 @@ function Checkout() {
           
           toast.success("Payment successful!", { id: "pay" });
           clear();
-          router.navigate({ to: "/order-success/$orderId", params: { orderId: verifyData.order.id } });
+          const targetOrderId = verifyData.orderId || verifyData.order?.id;
+          router.navigate({ to: "/order-success/$orderId", params: { orderId: targetOrderId } });
         },
         prefill: {
           name: form.getValues().fullName,
@@ -221,6 +223,22 @@ function Checkout() {
             <div className="flex justify-between"><span className="text-light-gray">Shipping</span><span>{shipping === 0 ? "FREE" : formatINR(shipping)}</span></div>
             <div className="h-px bg-dark-gray my-2" />
             <div className="flex justify-between items-baseline"><span className="text-light-gray uppercase tracking-widest text-xs">Total</span><span className="font-display text-3xl text-lime">{formatINR(total)}</span></div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-dark-gray">
+            <label className="block text-xs uppercase tracking-widest text-light-gray mb-2">Promo / Coupon Code</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. SUMMER10"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-sm uppercase font-mono tracking-wider focus:border-lime focus:outline-none"
+              />
+            </div>
+            {couponCode && (
+              <p className="text-[11px] text-lime mt-1.5 font-mono">Code {couponCode} will be applied at payment.</p>
+            )}
           </div>
         </aside>
       </div>

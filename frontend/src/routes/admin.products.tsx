@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { formatINR } from "@/lib/format";
 import { MSButton } from "@/components/ms/Button";
 import { useAuth } from "@/store/auth";
@@ -26,6 +26,12 @@ function AdminProducts() {
   const [highPrice, setHighPrice] = useState("");
   const [lowPrice, setLowPrice] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [productStatus, setProductStatus] = useState<"published" | "draft">("published");
+  const [isNewManual, setIsNewManual] = useState<string>("auto");
+  const [activeFilterTab, setActiveFilterTab] = useState<"all" | "published" | "draft">("all");
+  const [brand, setBrand] = useState("MANSEEK");
+  const [material, setMaterial] = useState("");
+  const [sku, setSku] = useState("");
 
   // Per-size stock: { S: 10, M: 5, L: 0, XL: 3 }
   const PRESET_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -264,32 +270,101 @@ function AdminProducts() {
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportCSV = () => {
+    window.open(`${import.meta.env.VITE_API_URL}/admin/products/export`, "_blank");
+  };
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      toast.loading("Importing products from CSV...", { id: "csv-imp" });
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/products/import`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Import failed");
+
+      toast.success(data.message || "CSV imported successfully!", { id: "csv-imp" });
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message, { id: "csv-imp" });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDuplicate = async (p: any) => {
+    try {
+      toast.loading(`Duplicating ${p.name}...`, { id: "dup" });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/products/${p.id}/duplicate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Failed");
+      toast.success("Product duplicated as draft!", { id: "dup" });
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message, { id: "dup" });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId) {
-      toast.error("Please select a category");
-      return;
-    }
-    if (imageFiles.length === 0) {
-      toast.error("Please add at least one product image");
-      return;
-    }
-    if (Object.keys(sizeStock).length === 0) {
-      toast.error("Add at least one size");
+    if (!name.trim()) {
+      toast.error("Please enter a product name");
       return;
     }
 
+    // Only enforce required category/price when immediately publishing
+    if (productStatus === "published") {
+      if (!categoryId) {
+        toast.error("Please select a category to publish");
+        return;
+      }
+      if (!highPrice || Number(highPrice) <= 0) {
+        toast.error("Please specify a valid base price to publish");
+        return;
+      }
+    }
+
     try {
-      toast.loading(`Creating product and uploading ${imageFiles.length} image(s)...`, { id: "add-product" });
+      toast.loading(
+        productStatus === "draft"
+          ? "Saving product draft..."
+          : `Publishing product with ${imageFiles.length} image(s)...`,
+        { id: "add-product" }
+      );
       
       const formData = new FormData();
       formData.append("name", name);
-      formData.append("slug", slug);
+      formData.append("slug", slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
       formData.append("description", description);
-      formData.append("category_id", categoryId);
-      formData.append("base_price", highPrice);
-      formData.append("sale_price", lowPrice);
-      formData.append("size_stock", JSON.stringify(sizeStock));
+      if (categoryId) formData.append("category_id", categoryId);
+      formData.append("base_price", highPrice || "0");
+      if (lowPrice) formData.append("sale_price", lowPrice);
+      formData.append("status", productStatus);
+      formData.append("brand", brand);
+      if (material) formData.append("material", material);
+      if (sku) formData.append("sku", sku);
+
+      // Automatic NEW badge override
+      if (isNewManual === "always") formData.append("is_new_manual", "true");
+      else if (isNewManual === "never") formData.append("is_new_manual", "false");
+      
+      // Sizing (optional!)
+      if (Object.keys(sizeStock).length > 0) {
+        formData.append("size_stock", JSON.stringify(sizeStock));
+      }
       formData.append("colors", JSON.stringify([{ name: colorName, hex: colorHex }]));
       formData.append("tags", JSON.stringify(tags));
       
@@ -308,7 +383,12 @@ function AdminProducts() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create product");
 
-      toast.success(`Product created with ${imageFiles.length} image(s) uploaded!`, { id: "add-product" });
+      toast.success(
+        productStatus === "draft"
+          ? "Draft product saved successfully!"
+          : `Product published successfully with automatic NEW badge!`,
+        { id: "add-product" }
+      );
       setShowModal(false);
       
       // Reset form
@@ -322,6 +402,10 @@ function AdminProducts() {
       setColorName("Black");
       setColorHex("#000000");
       setImageFiles([]);
+      setProductStatus("published");
+      setIsNewManual("auto");
+      setMaterial("");
+      setSku("");
 
       // Reload
       loadData();
@@ -360,16 +444,51 @@ function AdminProducts() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-4xl tracking-tight text-white">PRODUCTS</h1>
-        <MSButton size="sm" onClick={() => setShowModal(true)}>
-          + Add Product
-        </MSButton>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl tracking-tight text-white">PRODUCTS</h1>
+          <p className="text-xs text-light-gray mt-1">Manage catalog listings, variants, draft products, and inventory.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportCSV}
+            accept=".csv"
+            className="hidden"
+          />
+          <MSButton size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+            Import CSV
+          </MSButton>
+          <MSButton size="sm" variant="outline" onClick={handleExportCSV}>
+            Export CSV
+          </MSButton>
+          <MSButton size="sm" onClick={() => setShowModal(true)}>
+            + Add Product
+          </MSButton>
+        </div>
+      </div>
+
+      <div className="mt-6 flex gap-2 border-b border-dark-gray/40 pb-3">
+        {(["all", "published", "draft"] as const).map((t) => {
+          const count = t === "all" ? productsList.length : productsList.filter(p => (p.status || "published") === t).length;
+          return (
+            <button
+              key={t}
+              onClick={() => setActiveFilterTab(t)}
+              className={`px-3 py-1.5 rounded-sm text-xs font-display tracking-widest uppercase transition-all ${
+                activeFilterTab === t ? "bg-lime text-black font-bold" : "bg-off-black text-light-gray hover:text-white"
+              }`}
+            >
+              {t} ({count})
+            </button>
+          );
+        })}
       </div>
 
       <div className="mt-8 bg-off-black border border-dark-gray rounded-md overflow-hidden">
-        {productsList.length === 0 ? (
-          <p className="text-sm text-mid-gray p-8 text-center">No products found.</p>
+        {productsList.filter(p => activeFilterTab === "all" || (p.status || "published") === activeFilterTab).length === 0 ? (
+          <p className="text-sm text-mid-gray p-8 text-center">No products found in this tab.</p>
         ) : (
           <table className="w-full text-sm text-white">
             <thead className="text-light-gray text-left text-xs uppercase tracking-widest bg-charcoal">
@@ -384,7 +503,9 @@ function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {productsList.map((p) => {
+              {productsList
+                .filter(p => activeFilterTab === "all" || (p.status || "published") === activeFilterTab)
+                .map((p) => {
                 // Find category label
                 const cat = categories.find((c) => c.id === p.category_id);
                 return (
@@ -475,6 +596,12 @@ function AdminProducts() {
                           Edit Tags
                         </button>
                         <button
+                          onClick={() => handleDuplicate(p)}
+                          className="text-xs uppercase tracking-widest text-light-gray hover:text-white hover:underline font-bold font-display"
+                        >
+                          Duplicate
+                        </button>
+                        <button
                           onClick={() => setProductToDelete(p)}
                           className="text-xs uppercase tracking-widest text-danger hover:underline hover:text-red-400 font-bold font-display"
                         >
@@ -505,10 +632,40 @@ function AdminProducts() {
               <h2 className="font-display text-2xl tracking-tight mt-1 text-white">ADD NEW PRODUCT</h2>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 bg-charcoal/40 p-3 rounded border border-dark-gray/50">
+                <div>
+                  <label className="text-[10px] text-lime uppercase tracking-widest block mb-1 font-bold">
+                    Lifecycle Status *
+                  </label>
+                  <select
+                    value={productStatus}
+                    onChange={(e) => setProductStatus(e.target.value as any)}
+                    className="w-full h-9 px-2 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-xs"
+                  >
+                    <option value="published">Published (Live on Store)</option>
+                    <option value="draft">Draft (Save Incomplete)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-lime uppercase tracking-widest block mb-1 font-bold">
+                    "NEW" Badge Automation
+                  </label>
+                  <select
+                    value={isNewManual}
+                    onChange={(e) => setIsNewManual(e.target.value)}
+                    className="w-full h-9 px-2 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-xs"
+                  >
+                    <option value="auto">Automatic (30 Days)</option>
+                    <option value="always">Always Display NEW</option>
+                    <option value="never">Suppress NEW Badge</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
-                    Name
+                    Name *
                   </label>
                   <input
                     type="text"
@@ -525,11 +682,10 @@ function AdminProducts() {
                   </label>
                   <input
                     type="text"
-                    required
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
                     placeholder="void-oversized-tee"
-                    className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm"
+                    className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm font-mono"
                   />
                 </div>
               </div>
@@ -539,7 +695,6 @@ function AdminProducts() {
                   Description
                 </label>
                 <textarea
-                  required
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -551,24 +706,22 @@ function AdminProducts() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
-                    High Price (MRP ₹)
+                    Base Price (MRP ₹) {productStatus === "published" && "*"}
                   </label>
                   <input
                     type="number"
-                    required
                     value={highPrice}
                     onChange={(e) => setHighPrice(e.target.value)}
                     placeholder="2000"
-                    className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm"
+                    className="w-full h-10 px-3 bg-charcoal border border-dark-gray rounded-sm text-white focus:border-lime focus:outline-none text-sm font-mono"
                   />
                 </div>
                 <div>
                   <label className="text-xs text-light-gray uppercase tracking-widest block mb-1">
-                    Low Price (Selling Price ₹)
+                    Sale Price (₹)
                   </label>
                   <input
                     type="number"
-                    required
                     value={lowPrice}
                     onChange={(e) => setLowPrice(e.target.value)}
                     placeholder="800"

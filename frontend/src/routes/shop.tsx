@@ -52,9 +52,16 @@ export const Route = createFileRoute("/shop")({
         p.sizes.forEach((s: string) => sizeSet.add(s));
       }
     });
-    // Custom sort for sizes
-    const sizeOrder = ["XS", "S", "M", "L", "XL", "XXL"];
-    const availableSizes = Array.from(sizeSet).sort((a, b) => sizeOrder.indexOf(a) - sizeOrder.indexOf(b));
+    // Custom sort for sizes: standard tops, numeric waist sizes, and custom
+    const sizeOrder = ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "ONESIZE"];
+    const availableSizes = Array.from(sizeSet).sort((a, b) => {
+      const idxA = sizeOrder.indexOf(a);
+      const idxB = sizeOrder.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
 
     const mappedProducts = prodData.products.map((p: any) => ({
       ...p,
@@ -178,7 +185,7 @@ function Shop() {
               All
             </button>
             {categories
-              .filter((c: any) => c.slug !== "joggers")
+              .filter((c: any) => c.is_visible !== false)
               .map((c: any) => (
               <button
                 key={c.slug}

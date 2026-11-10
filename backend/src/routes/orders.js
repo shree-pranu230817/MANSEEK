@@ -7,6 +7,7 @@ const { createOrderSchema, verifyPaymentSchema } = require('../schemas/order.sch
 
 router.post('/create-razorpay-order', verifyToken, validate(createOrderSchema), ordersController.createRazorpayOrder);
 router.post('/verify-payment', verifyToken, validate(verifyPaymentSchema), ordersController.verifyPayment);
+router.post('/returns', verifyToken, ordersController.requestOrderReturn);
 router.get('/', verifyToken, ordersController.getUserOrders);
 router.get('/track', ordersController.trackOrder);
 router.get('/:id', verifyToken, ordersController.getOrderById);

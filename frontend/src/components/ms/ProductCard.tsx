@@ -17,10 +17,15 @@ export function ProductCard({ product }: { product: Product }) {
   const isWishlisted = useWishlist((s) => s.hasItem(product.id));
   const soldOut = product.stock === 0 || product.badge === "SOLD OUT";
 
-  // Dynamic badge from tags, sale price, or stock status
+  // Dynamic badge: automatic NEW identification from API (is_new) or published date, sale price, or stock status
+  const isAutoNew = (product as any).is_new ?? (
+    (product as any).published_at &&
+    (Date.now() - new Date((product as any).published_at).getTime()) < (30 * 24 * 60 * 60 * 1000)
+  );
+
   const badge = soldOut
     ? "SOLD OUT"
-    : product.tags?.includes("New Drop") || product.tags?.includes("NEW")
+    : isAutoNew || product.tags?.includes("New Drop") || product.tags?.includes("NEW")
       ? "NEW"
       : product.badge
         ? product.badge
@@ -33,22 +38,21 @@ export function ProductCard({ product }: { product: Product }) {
               : null;
 
   const quickAdd = () => {
-    const s = size || product.sizes[Math.floor(product.sizes.length / 2)];
-    if (!s) {
-      toast.error("No sizes available");
-      return;
-    }
+    const hasSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
+    const s = size || (hasSizes ? product.sizes[Math.floor(product.sizes.length / 2)] : "ONESIZE");
+    const c = (Array.isArray(product.colors) && product.colors.length > 0) ? product.colors[0].name : "Standard";
+
     addItem({
       productId: product.id,
       slug: product.slug,
       name: product.name,
-      image: product.images[0],
+      image: product.images?.[0] || "",
       price: product.price,
       size: s,
-      color: product.colors[0].name,
+      color: c,
       quantity: 1,
     });
-    toast.success(`Added ${product.name} (${s}) to cart`);
+    toast.success(`Added ${product.name} to cart`);
   };
 
   return (

@@ -33,11 +33,12 @@ const register = async (req, res, next) => {
       }]);
     }
 
-    await sendWelcomeEmail({ to: email, name });
+    try {
+      await sendWelcomeEmail({ to: email, name });
+    } catch (_) {}
 
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
     
-    // exclude hash
     delete user.password_hash;
     res.status(201).json({ user, token });
   } catch (error) {
@@ -66,7 +67,11 @@ const login = async (req, res, next) => {
 
 const me = async (req, res, next) => {
   try {
-    const { data: user, error } = await supabase.from('users').select('*, addresses(*)').eq('id', req.user.userId).single();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*, addresses(*)')
+      .eq('id', req.user.userId)
+      .single();
     if (error || !user) return res.status(404).json({ error: 'User not found' });
     
     delete user.password_hash;
@@ -76,8 +81,69 @@ const me = async (req, res, next) => {
   }
 };
 
+const updateProfile = async (req, res, next) => {
+  try {
+    const { name, phone, avatar_url } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', req.user.userId)
+      .select('*, addresses(*)')
+      .single();
+
+    if (error) throw error;
+    delete user.password_hash;
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addAddress = async (req, res, next) => {
+  try {
+    const { full_name, phone, line1, line2, city, state, pincode, is_default } = req.body;
+    
+    if (is_default) {
+      await supabase.from('addresses').update({ is_default: false }).eq('user_id', req.user.userId);
+    }
+
+    const { data: address, error } = await supabase
+      .from('addresses')
+      .insert([{
+        user_id: req.user.userId,
+        full_name,
+        phone,
+        line1,
+        line2,
+        city,
+        state,
+        pincode,
+        is_default: Boolean(is_default)
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(address);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const logout = async (req, res) => {
   res.json({ message: 'Logged out' });
 };
 
-module.exports = { register, login, me, logout };
+module.exports = {
+  register,
+  login,
+  me,
+  updateProfile,
+  addAddress,
+  logout
+};

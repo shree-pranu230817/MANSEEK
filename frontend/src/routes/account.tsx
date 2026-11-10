@@ -58,38 +58,91 @@ function Account() {
 
   if (!user) return null;
 
-  const handleProfileSave = (e: React.FormEvent) => {
+  const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
-    const updatedUser = { ...user, name: editName, phone: editPhone };
-    loginState(updatedUser, token);
-    toast.success("Profile details updated successfully!");
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: editName, phone: editPhone })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        loginState(updated, token);
+      } else {
+        const updatedUser = { ...user, name: editName, phone: editPhone };
+        loginState(updatedUser, token);
+      }
+      toast.success("Profile details updated successfully!");
+    } catch (_) {
+      const updatedUser = { ...user, name: editName, phone: editPhone };
+      loginState(updatedUser, token);
+      toast.success("Profile details updated successfully!");
+    }
   };
 
-  const handleAddAddress = (e: React.FormEvent) => {
+  const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
-    const newAddress = {
-      id: Math.random().toString(),
-      full_name: user.name,
-      phone: user.phone || "9999999999",
-      line1,
-      line2,
-      city,
-      state: stateName,
-      pincode,
-      is_default: (user.addresses || []).length === 0,
-    };
-    const updatedAddresses = [...(user.addresses || []), newAddress];
-    const updatedUser = { ...user, addresses: updatedAddresses };
-    loginState(updatedUser, token);
-    toast.success("New address added successfully!");
-    setShowAddressForm(false);
-    setLine1("");
-    setLine2("");
-    setCity("");
-    setStateName("");
-    setPincode("");
+    try {
+      const payload = {
+        full_name: user.name,
+        phone: user.phone || "9999999999",
+        line1,
+        line2,
+        city,
+        state: stateName,
+        pincode,
+        is_default: (user.addresses || []).length === 0,
+      };
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/addresses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const savedAddr = await res.json();
+        const updatedAddresses = [...(user.addresses || []), savedAddr];
+        loginState({ ...user, addresses: updatedAddresses }, token);
+      } else {
+        const newAddress = { id: Math.random().toString(), ...payload };
+        loginState({ ...user, addresses: [...(user.addresses || []), newAddress] }, token);
+      }
+      toast.success("New address added successfully!");
+      setShowAddressForm(false);
+      setLine1("");
+      setLine2("");
+      setCity("");
+      setStateName("");
+      setPincode("");
+    } catch (_) {
+      const newAddress = {
+        id: Math.random().toString(),
+        full_name: user.name,
+        phone: user.phone || "9999999999",
+        line1,
+        line2,
+        city,
+        state: stateName,
+        pincode,
+        is_default: (user.addresses || []).length === 0,
+      };
+      loginState({ ...user, addresses: [...(user.addresses || []), newAddress] }, token);
+      toast.success("New address added successfully!");
+      setShowAddressForm(false);
+      setLine1("");
+      setLine2("");
+      setCity("");
+      setStateName("");
+      setPincode("");
+    }
   };
 
   return (

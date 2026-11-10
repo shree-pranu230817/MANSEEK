@@ -20,11 +20,14 @@ const apiLimiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 100 });
 app.use('/api/auth', authLimiter);
 app.use('/api', apiLimiter);
 
-// Routes (to be implemented)
+// Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/wishlist', require('./routes/wishlist'));
+app.use('/api/cart', require('./routes/cart'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/marquee', require('./routes/marquee'));
 app.use('/api/admin', require('./routes/admin'));
