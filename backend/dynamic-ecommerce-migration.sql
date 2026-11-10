@@ -121,44 +121,43 @@ CREATE TABLE IF NOT EXISTS stock_movements (
 -- Ensure historical stock movements survive product deletion even if table already existed
 DO $$
 DECLARE
-  v_fk_name TEXT;
-  v_delete_rule TEXT;
+  v_conname TEXT;
+  v_confdeltype TEXT;
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'stock_movements'
+    SELECT 1 
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
+    WHERE n.nspname = 'public' AND c.relname = 'stock_movements'
   ) THEN
     -- Ensure product_id is nullable so SET NULL can operate
     ALTER TABLE public.stock_movements ALTER COLUMN product_id DROP NOT NULL;
-    
-    -- Identify the specific foreign key on public.stock_movements(product_id)
-    SELECT 
-      tc.constraint_name,
-      rc.delete_rule
-    INTO 
-      v_fk_name,
-      v_delete_rule
-    FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu
-      ON tc.constraint_schema = kcu.constraint_schema
-     AND tc.constraint_name = kcu.constraint_name
-    JOIN information_schema.referential_constraints rc
-      ON tc.constraint_schema = rc.constraint_schema
-     AND tc.constraint_name = rc.constraint_name
-    WHERE tc.table_schema = 'public'
-      AND tc.table_name = 'stock_movements'
-      AND kcu.column_name = 'product_id'
-      AND tc.constraint_type = 'FOREIGN KEY'
+
+    -- Query PostgreSQL system catalog directly for FK constraint on public.stock_movements(product_id)
+    SELECT
+      con.conname,
+      con.confdeltype::text
+    INTO
+      v_conname,
+      v_confdeltype
+    FROM pg_catalog.pg_constraint con
+    JOIN pg_catalog.pg_class c ON con.conrelid = c.oid
+    JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
+    JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(con.conkey)
+    WHERE n.nspname = 'public'
+      AND c.relname = 'stock_movements'
+      AND a.attname = 'product_id'
+      AND con.contype = 'f'
     LIMIT 1;
 
-    -- If FK exists but does not use 'SET NULL', drop and recreate
-    IF v_fk_name IS NOT NULL AND v_delete_rule <> 'SET NULL' THEN
-      EXECUTE 'ALTER TABLE public.stock_movements DROP CONSTRAINT ' || quote_ident(v_fk_name);
+    -- In PostgreSQL pg_constraint: confdeltype = 'n' represents ON DELETE SET NULL
+    IF v_conname IS NOT NULL AND v_confdeltype <> 'n' THEN
+      EXECUTE 'ALTER TABLE public.stock_movements DROP CONSTRAINT ' || quote_ident(v_conname);
       ALTER TABLE public.stock_movements 
         ADD CONSTRAINT stock_movements_product_id_fkey 
         FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE SET NULL;
-    ELSIF v_fk_name IS NULL THEN
-      -- If foreign key constraint is missing entirely, create it with ON DELETE SET NULL
+    ELSIF v_conname IS NULL THEN
+      -- If foreign key constraint does not exist, create it with ON DELETE SET NULL
       ALTER TABLE public.stock_movements 
         ADD CONSTRAINT stock_movements_product_id_fkey 
         FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE SET NULL;
