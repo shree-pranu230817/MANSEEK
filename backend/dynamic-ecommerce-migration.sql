@@ -121,22 +121,47 @@ CREATE TABLE IF NOT EXISTS stock_movements (
 -- Ensure historical stock movements survive product deletion even if table already existed
 DO $$
 DECLARE
-  fk_name TEXT;
+  v_fk_name TEXT;
+  v_delete_rule TEXT;
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stock_movements') THEN
-    ALTER TABLE stock_movements ALTER COLUMN product_id DROP NOT NULL;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' AND table_name = 'stock_movements'
+  ) THEN
+    -- Ensure product_id is nullable so SET NULL can operate
+    ALTER TABLE public.stock_movements ALTER COLUMN product_id DROP NOT NULL;
     
-    SELECT tc.constraint_name INTO fk_name
+    -- Identify the specific foreign key on public.stock_movements(product_id)
+    SELECT 
+      tc.constraint_name,
+      rc.delete_rule
+    INTO 
+      v_fk_name,
+      v_delete_rule
     FROM information_schema.table_constraints tc
     JOIN information_schema.key_column_usage kcu
-      ON tc.constraint_name = kcu.constraint_name
-    WHERE tc.table_name = 'stock_movements'
+      ON tc.constraint_schema = kcu.constraint_schema
+     AND tc.constraint_name = kcu.constraint_name
+    JOIN information_schema.referential_constraints rc
+      ON tc.constraint_schema = rc.constraint_schema
+     AND tc.constraint_name = rc.constraint_name
+    WHERE tc.table_schema = 'public'
+      AND tc.table_name = 'stock_movements'
       AND kcu.column_name = 'product_id'
-      AND tc.constraint_type = 'FOREIGN KEY';
+      AND tc.constraint_type = 'FOREIGN KEY'
+    LIMIT 1;
 
-    IF fk_name IS NOT NULL THEN
-      EXECUTE 'ALTER TABLE stock_movements DROP CONSTRAINT ' || quote_ident(fk_name);
-      ALTER TABLE stock_movements ADD CONSTRAINT stock_movements_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+    -- If FK exists but does not use 'SET NULL', drop and recreate
+    IF v_fk_name IS NOT NULL AND v_delete_rule <> 'SET NULL' THEN
+      EXECUTE 'ALTER TABLE public.stock_movements DROP CONSTRAINT ' || quote_ident(v_fk_name);
+      ALTER TABLE public.stock_movements 
+        ADD CONSTRAINT stock_movements_product_id_fkey 
+        FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE SET NULL;
+    ELSIF v_fk_name IS NULL THEN
+      -- If foreign key constraint is missing entirely, create it with ON DELETE SET NULL
+      ALTER TABLE public.stock_movements 
+        ADD CONSTRAINT stock_movements_product_id_fkey 
+        FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE SET NULL;
     END IF;
   END IF;
 END $$;
@@ -295,12 +320,18 @@ BEGIN
 END $$;
 
 -- 13. ENABLE ROW LEVEL SECURITY AND PERMISSIVE POLICIES (Safely Repeatable)
+-- Public Catalog Tables (Public read allowed via policies)
 ALTER TABLE size_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sizes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attributes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attribute_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_settings ENABLE ROW LEVEL SECURITY;
+
+-- Internal / Sensitive Tables (No public policies; Express backend uses service-role key)
 ALTER TABLE order_returns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abandoned_carts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "size_groups_public_read" ON size_groups;
 CREATE POLICY "size_groups_public_read" ON size_groups FOR SELECT TO anon, authenticated USING (TRUE);
@@ -317,5 +348,58 @@ CREATE POLICY "attribute_options_public_read" ON attribute_options FOR SELECT TO
 DROP POLICY IF EXISTS "store_settings_public_read" ON store_settings;
 CREATE POLICY "store_settings_public_read" ON store_settings FOR SELECT TO anon, authenticated USING (TRUE);
 
--- Completed safely.
+-- ==============================================================================
+-- 14. ROLLBACK REFERENCE GUIDE (DO NOT RUN AS PART OF MIGRATION)
+-- ==============================================================================
+-- CRITICAL WARNINGS:
+-- 1. PERMANENT DATA LOSS: Dropping newly created tables or columns permanently
+--    deletes all data stored within them (including stock movement history,
+--    audit logs, dynamic attributes, customer returns, abandoned carts, and settings).
+-- 2. CASCADE RISKS: Using CASCADE drops dependent database objects (indexes,
+--    foreign keys, views, or triggers). Rollback MUST NOT be described as zero-risk.
+-- 3. MANDATORY BACKUP: Always take a full database backup or export via the
+--    Supabase Dashboard before executing any rollback steps.
+-- 4. DO NOT EXECUTE AUTOMATICALLY: This rollback script is provided for reference
+--    only and should only be evaluated manually in an emergency release reversion.
+--
+-- MANUAL ROLLBACK REFERENCE (For manual execution only if needed):
+--
+-- DROP TABLE IF EXISTS abandoned_carts CASCADE;
+-- DROP TABLE IF EXISTS order_returns CASCADE;
+-- DROP TABLE IF EXISTS admin_audit_logs CASCADE;
+-- DROP TABLE IF EXISTS store_settings CASCADE;
+-- DROP TABLE IF EXISTS stock_movements CASCADE;
+-- DROP TABLE IF EXISTS attribute_options CASCADE;
+-- DROP TABLE IF EXISTS attributes CASCADE;
+-- DROP TABLE IF EXISTS sizes CASCADE;
+-- DROP TABLE IF EXISTS size_groups CASCADE;
+--
+-- ALTER TABLE categories
+--   DROP COLUMN IF EXISTS parent_id,
+--   DROP COLUMN IF EXISTS is_visible,
+--   DROP COLUMN IF EXISTS is_featured_home,
+--   DROP COLUMN IF EXISTS assigned_size_group_id;
+--
+-- ALTER TABLE products
+--   DROP COLUMN IF EXISTS status,
+--   DROP COLUMN IF EXISTS published_at,
+--   DROP COLUMN IF EXISTS new_until,
+--   DROP COLUMN IF EXISTS is_new_manual,
+--   DROP COLUMN IF EXISTS size_group_id,
+--   DROP COLUMN IF EXISTS low_stock_threshold,
+--   DROP COLUMN IF EXISTS attributes_data,
+--   DROP COLUMN IF EXISTS sku,
+--   DROP COLUMN IF EXISTS cost_price,
+--   DROP COLUMN IF EXISTS brand,
+--   DROP COLUMN IF EXISTS material,
+--   DROP COLUMN IF EXISTS is_featured_collection,
+--   DROP COLUMN IF EXISTS collection_name;
+--
+-- ALTER TABLE product_variants
+--   DROP COLUMN IF EXISTS price_override,
+--   DROP COLUMN IF EXISTS sale_price_override,
+--   DROP COLUMN IF EXISTS barcode,
+--   DROP COLUMN IF EXISTS is_active,
+--   DROP COLUMN IF EXISTS option_matrix;
+-- ==============================================================================
 
