@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/ms/ProductCard";
 import { MSButton } from "@/components/ms/Button";
 import { cn } from "@/lib/utils";
@@ -91,34 +91,49 @@ function Shop() {
   const { category, size, color, sort } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { categories, products, availableColors, availableSizes } = Route.useLoaderData();
-  const [openFilters, setOpenFilters] = useState(false);
   const [openSort, setOpenSort] = useState(false);
   const [openColorDropdown, setOpenColorDropdown] = useState(false);
+  const [openMobileColorDropdown, setOpenMobileColorDropdown] = useState(false);
+
+  // Normalize and deduplicate categories to prevent duplicate entries (e.g. Pants and pants)
+  const uniqueCategories = useMemo(() => {
+    const seen = new Set<string>();
+    const result: any[] = [];
+    (categories || [])
+      .filter((c: any) => c && c.is_visible !== false)
+      .forEach((c: any) => {
+        const slugNorm = (c.slug || "").toLowerCase().trim();
+        const nameNorm = (c.name || "").toLowerCase().trim();
+        if (slugNorm && !seen.has(slugNorm) && !seen.has(nameNorm)) {
+          seen.add(slugNorm);
+          seen.add(nameNorm);
+          result.push({
+            ...c,
+            slug: slugNorm,
+            name: c.name ? c.name.charAt(0).toUpperCase() + c.name.slice(1) : slugNorm,
+          });
+        }
+      });
+    return result;
+  }, [categories]);
 
   const activeSortLabel = SORTS.find((s) => s.v === sort)?.l || "Newest";
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 lg:px-8 pt-8 pb-12">
       {/* Title & Actions Bar */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-10 pb-6 border-b border-dark-gray/30 gap-4">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8 pb-6 border-b border-dark-gray/30 gap-4">
         <div>
           <p className="font-accent italic text-lime">All drops</p>
           <h1 className="font-display text-5xl lg:text-7xl tracking-tight">SHOP</h1>
           <p className="mt-2 text-light-gray text-sm">
             {products.length} {products.length === 1 ? "item" : "items"}
-            {category ? ` in ${categories.find((c: any) => c.slug === category)?.name}` : ""}
+            {category ? ` in ${uniqueCategories.find((c: any) => c.slug.toLowerCase() === category.toLowerCase())?.name || category}` : ""}
           </p>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setOpenFilters(true)}
-            className="lg:hidden inline-flex items-center gap-2 h-10 px-4 rounded-sm border border-dark-gray text-sm text-white hover:border-lime transition-all"
-          >
-            <SlidersHorizontal className="h-4 w-4" /> Filters
-          </button>
-          
           <div className="relative">
             <button
               onClick={() => setOpenSort(!openSort)}
@@ -156,37 +171,184 @@ function Shop() {
         </div>
       </div>
 
+      {/* Mobile Category Filters (Directly visible without any button) */}
+      <div className="lg:hidden mb-8 space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="font-display tracking-widest text-xs text-lime uppercase">Category</p>
+            {(category || size || color) && (
+              <button
+                onClick={() => navigate({ search: () => ({ sort: "newest" as const }) })}
+                className="text-[11px] text-light-gray hover:text-white underline font-mono"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-none">
+            <button
+              onClick={() => navigate({ search: (p: Record<string, unknown>) => ({ ...p, category: undefined }) })}
+              className={cn(
+                "shrink-0 h-9 px-4 rounded-sm text-xs font-display tracking-wider border transition-all flex items-center justify-center",
+                !category
+                  ? "bg-lime text-black border-lime font-bold"
+                  : "bg-off-black border-dark-gray text-light-gray hover:text-white hover:border-light-gray"
+              )}
+            >
+              ALL
+            </button>
+            {uniqueCategories.map((c: any) => {
+              const isSelected = category?.toLowerCase() === c.slug.toLowerCase();
+              return (
+                <button
+                  key={c.slug}
+                  onClick={() =>
+                    navigate({
+                      search: (p: Record<string, unknown>) => ({
+                        ...p,
+                        category: isSelected ? undefined : c.slug,
+                      }),
+                    })
+                  }
+                  className={cn(
+                    "shrink-0 h-9 px-4 rounded-sm text-xs font-display tracking-wider border transition-all flex items-center justify-center",
+                    isSelected
+                      ? "bg-lime text-black border-lime font-bold"
+                      : "bg-off-black border-dark-gray text-light-gray hover:text-white hover:border-light-gray"
+                  )}
+                >
+                  {c.name.toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile Size & Color Filters (Directly visible and interactive on mobile) */}
+        {(availableSizes.length > 0 || availableColors.length > 0) && (
+          <div className="space-y-3 pt-3 border-t border-dark-gray/30">
+            {availableSizes.length > 0 && (
+              <div>
+                <p className="font-display tracking-widest text-[11px] text-light-gray mb-1.5 uppercase">Size</p>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none">
+                  {availableSizes.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() =>
+                        navigate({
+                          search: (p: Record<string, unknown>) => ({
+                            ...p,
+                            size: size === s ? undefined : s,
+                          }),
+                        })
+                      }
+                      className={cn(
+                        "shrink-0 h-8 min-w-8 px-2 text-xs rounded-sm border transition font-mono flex items-center justify-center",
+                        size === s
+                          ? "bg-lime text-black border-lime font-bold"
+                          : "border-dark-gray text-light-gray hover:border-white hover:text-white bg-off-black"
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {availableColors.length > 0 && (
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="relative flex-1 max-w-[220px]">
+                  <button
+                    onClick={() => setOpenMobileColorDropdown(!openMobileColorDropdown)}
+                    className="w-full h-8 px-3 bg-off-black border border-dark-gray hover:border-lime rounded-sm text-[11px] flex items-center justify-between text-white transition-all font-display tracking-widest text-left"
+                  >
+                    <span className="truncate">
+                      {color
+                        ? (availableColors.find((c) => c.hex.toLowerCase() === color.toLowerCase())?.name || "COLOR").toUpperCase()
+                        : "COLOR: ALL"}
+                    </span>
+                    <ChevronDown className={cn("h-3.5 w-3.5 text-light-gray transition-transform shrink-0 ml-1", openMobileColorDropdown && "rotate-180")} />
+                  </button>
+                  {openMobileColorDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setOpenMobileColorDropdown(false)} />
+                      <div className="absolute left-0 mt-1 w-48 z-40 bg-off-black border border-dark-gray rounded-sm shadow-2xl backdrop-blur-md overflow-hidden max-h-48 overflow-y-auto animate-in fade-in duration-150">
+                        <button
+                          onClick={() => {
+                            navigate({ search: (p: Record<string, unknown>) => ({ ...p, color: undefined }) });
+                            setOpenMobileColorDropdown(false);
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-[10px] font-display tracking-widest transition-all hover:bg-charcoal/50",
+                            !color ? "text-lime bg-charcoal/30 font-bold" : "text-light-gray hover:text-white"
+                          )}
+                        >
+                          ALL COLORS
+                        </button>
+                        {availableColors.map((c) => {
+                          const isSelected = color?.toLowerCase() === c.hex.toLowerCase();
+                          return (
+                            <button
+                              key={c.hex}
+                              onClick={() => {
+                                navigate({
+                                  search: (p: Record<string, unknown>) => ({ ...p, color: c.hex }),
+                                });
+                                setOpenMobileColorDropdown(false);
+                              }}
+                              className={cn(
+                                "w-full text-left px-3 py-2 text-[10px] font-display tracking-widest transition-all hover:bg-charcoal/50 flex items-center gap-2",
+                                isSelected ? "text-lime bg-charcoal/30 font-bold" : "text-light-gray hover:text-white"
+                              )}
+                            >
+                              <span className="h-2.5 w-2.5 rounded-full border border-dark-gray shrink-0" style={{ background: c.hex }} />
+                              <span className="truncate">{c.name.toUpperCase()}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {(size || color) && (
+                  <button
+                    onClick={() =>
+                      navigate({
+                        search: (p: Record<string, unknown>) => ({
+                          ...p,
+                          size: undefined,
+                          color: undefined,
+                        }),
+                      })
+                    }
+                    className="text-[11px] text-light-gray hover:text-white underline font-mono"
+                  >
+                    Reset Size/Color
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-[240px_1fr] gap-10 items-start">
-        {/* Filters */}
-        <aside
-          className={cn(
-            "lg:block",
-            openFilters
-              ? "fixed inset-0 z-50 bg-black p-6 overflow-y-auto"
-              : "hidden",
-          )}
-        >
-          <div className="flex items-center justify-between mb-6 lg:hidden">
-            <p className="font-display text-2xl tracking-widest">FILTERS</p>
-            <button onClick={() => setOpenFilters(false)}>
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
+        {/* Desktop Sidebar Filters (Unchanged for desktop) */}
+        <aside className="hidden lg:block">
           <FilterGroup title="Category">
             <button
               onClick={() => navigate({ search: (p: Record<string, unknown>) => ({ ...p, category: undefined }) })}
               className={cn(
                 "block w-full text-left text-sm py-1.5",
-                !category ? "text-lime" : "text-light-gray hover:text-white",
+                !category ? "text-lime font-bold" : "text-light-gray hover:text-white",
               )}
             >
               All
             </button>
-            {categories
-              .filter((c: any) => c.is_visible !== false)
-              .map((c: any) => (
+            {uniqueCategories.map((c: any) => (
               <button
                 key={c.slug}
                 onClick={() =>
@@ -194,8 +356,8 @@ function Shop() {
                 }
                 className={cn(
                   "block w-full text-left text-sm py-1.5",
-                  category === c.slug
-                    ? "text-lime"
+                  category?.toLowerCase() === c.slug.toLowerCase()
+                    ? "text-lime font-bold"
                     : "text-light-gray hover:text-white",
                 )}
               >

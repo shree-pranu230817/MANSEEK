@@ -4,7 +4,7 @@ import { Instagram, Facebook, Youtube } from "lucide-react";
 const SOCIALS = [
   {
     Icon: Instagram,
-    href: "https://www.instagram.com/manseek_dtf?igsh=eGxrcjNzaGl2Y2pt",
+    href: "https://www.instagram.com/manseek_pvg?xtok=M3Z0M2I5Mmt0cnVv&utm_source=qr",
     label: "Instagram",
   },
   {
